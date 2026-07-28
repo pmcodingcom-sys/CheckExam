@@ -974,46 +974,53 @@
 				
 				const totalQuestions = currentExamKeys.length;
 				
-				// สร้าง Prompt สั่งงาน Gemini
-				const promptText = `
-				คุณคือ AI ตรวจกระดาษคำตอบแบบปรนัย 
-				ภาพที่แนบมาคือกระดาษคำตอบที่มีจำนวน ${totalQuestions} ข้อ
-				ตัวเลือกในแต่ละข้อคือ "ก", "ข", "ค", "ง" 
-				นักเรียนจะทำเครื่องหมายกากบาท (X) หรือเขียนเส้นลงในช่องตัวเลือกที่ต้องการ
-				
-				หน้าที่ของคุณ:
-				ให้อ่านว่าในแต่ละข้อ (ตั้งแต่ข้อ 1 ถึง ${totalQuestions}) นักเรียนเลือกตอบข้อใด
-				
-				ข้อกำหนดในการตอบกลับ:
-				คืนค่าผลลัพธ์เป็นโครงสร้าง JSON เท่านั้น โดยให้ Key เป็นเลขข้อ (String) และ Value เป็นตัวเลือก (ก, ข, ค, ง)
-				หากข้อไหนนักเรียนไม่ได้ตอบ หรืออ่านไม่ออกชัดเจน ให้กำหนด Value เป็น null
-				ห้ามอธิบายเพิ่มเติม ห้ามมี Markdown กลับมา ให้ตอบแค่ JSON เท่านั้น
-				
-				ตัวอย่าง JSON ที่ต้องการ:
-				{
-				  "1": "ก",
-				  "2": "ค",
-				  "3": null
-				}
-				`;
+				// 1. สร้างคำอธิบายโครงสร้างตารางให้ AI เข้าใจอย่างถ่องแท้
+        let layoutDescription = "";
+        if (totalQuestions === 20) {
+            layoutDescription = "ตารางแบ่งเป็น 2 ฝั่ง ซ้ายและขวา ฝั่งซ้ายคือข้อ 1-10 เรียงจากบนลงล่าง ฝั่งขวาคือข้อ 11-20 เรียงจากบนลงล่าง";
+        } else {
+            layoutDescription = "ตารางแบ่งเป็น 2 ฝั่ง ซ้ายและขวา ฝั่งซ้ายคือข้อ 1-5 เรียงจากบนลงล่าง ฝั่งขวาคือข้อ 6-10 เรียงจากบนลงล่าง";
+        }
+        
+        // 2. สร้าง Prompt สั่งงาน Gemini แบบบังคับความแม่นยำ
+        const promptText = `
+        คุณคือ AI ตรวจกระดาษคำตอบแบบปรนัยที่ต้องมีความแม่นยำ 100% 
+        ภาพที่แนบมาคือกระดาษคำตอบที่มีจำนวน ${totalQuestions} ข้อ
+        
+        โครงสร้างของตารางในภาพ:
+        - ${layoutDescription}
+        - คอลัมน์ตัวเลือกในแต่ละฝั่ง เรียงตามลำดับจากซ้ายไปขวาคือ "ก", "ข", "ค", "ง"
+        
+        ขั้นตอนการทำงาน (บังคับทำตามอย่างเคร่งครัด):
+        1. ให้หาตำแหน่งของ "ตัวเลขข้อ" พิมพ์กำกับไว้ให้เจอชัดเจนก่อน เพื่อป้องกันการสลับข้อหรือข้ามบรรทัด
+        2. ไล่ดูไปตามแนวขนานของแถวนั้นๆ ว่ามีรอยกากบาท (X) หรือการขีดเขียนในช่อง ก, ข, ค, หรือง
+        3. ตรวจสอบให้แน่ใจว่ารอยกากบาทนั้น อยู่ในแถวเดียวกับตัวเลขข้อเป๊ะๆ ห้ามอ่านเลื่อนขึ้นหรือเลื่อนลงเด็ดขาด
+        4. หากช่องไหนรอยจางมาก แต่มีเจตนากากบาทชัดเจน ให้ถือว่าตอบข้อนั้น
+        5. หากข้อใดมีการเว้นว่าง ลบไม่สะอาด หรือกากบาทมากกว่า 1 ช่อง ให้ถือว่าข้อนั้นมีค่าเป็น null
+        
+        กฎการตอบกลับ:
+        - คืนค่าผลลัพธ์เป็นโครงสร้าง JSON เท่านั้น
+        - Key คือเลขข้อ (String) และ Value คือตัวเลือก (ก, ข, ค, ง)
+        - ห้ามพิมพ์ข้อความอธิบายใดๆ ทั้งสิ้น ตอบมาแค่ JSON
+        `;
 
-				// เรียกใช้งาน Gemini API
-				const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						contents: [{
-							parts: [
-								{ text: promptText },
-								{ inline_data: { mime_type: "image/jpeg", data: base64Image } }
-							]
-						}],
-						generationConfig: {
-							temperature: 0.1, // ตั้งค่าต่ำเพื่อให้ AI ตอบแม่นยำ ไม่เพ้อเจ้อ
-							response_mime_type: "application/json" // บังคับให้ออกมาเป็น JSON
-						}
-					})
-				});
+        // 3. เรียกใช้งาน Gemini API (ปรับ Temperature เป็น 0.0 เพื่อความเสถียรสูงสุด)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }],
+                generationConfig: {
+                    temperature: 0.0, // <-- บังคับให้ AI ตอบแบบตรงไปตรงมา ไม่คิดพลิกแพลง
+                    response_mime_type: "application/json"
+                }
+            })
+        });
 
 				if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อกับ Gemini API');
 
