@@ -591,7 +591,7 @@
         const SUPABASE_ANON_KEY = 'sb_publishable__wPVXnik4BNWJQy_6Ut5JA_vD9HWpoP';
         
 		// เพิ่ม Gemini API Key ตรงนี้
-		const GEMINI_API_KEY = 'AQ.Ab8RN6IPnqDzzQzyAPca7Y0ZPraAZulEiKQ720anFzp_fgm2iQ';
+		let GEMINI_API_KEY = '';
 
         // ห้ามใช้ตัวแปรชื่อ supabase
         const dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -613,16 +613,17 @@
 
         // ------------------ AUTH & SESSION MANAGEMENT ------------------
         function checkSession() {
-            const savedUser = localStorage.getItem('omr_session');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                setupAuthenticatedUI();
-                switchTab('dashboard');
-            } else {
-                setupGuestUI();
-                switchTab('landing');
-            }
-        }
+			const savedUser = localStorage.getItem('omr_session');
+			if (savedUser) {
+				currentUser = JSON.parse(savedUser);
+				setupAuthenticatedUI();
+				loadSystemSettings(); // <--- เพิ่มบรรทัดนี้
+				switchTab('dashboard');
+			} else {
+				setupGuestUI();
+				switchTab('landing');
+			}
+		}
 
         function setupAuthenticatedUI() {
 			document.getElementById('userProfileArea').classList.remove('hidden');
@@ -694,6 +695,7 @@
                 localStorage.setItem('omr_session', JSON.stringify(currentUser));
                 hideLoginModal();
                 setupAuthenticatedUI();
+				loadSystemSettings();
                 switchTab('dashboard');
                 showToast(`ยินดีต้อนรับคุณ ${currentUser.full_name}`, 'success');
 
@@ -1546,6 +1548,24 @@
         function capitalize(s) {
             return s.charAt(0).toUpperCase() + s.slice(1);
         }
+		
+		// ฟังก์ชันดึง API Key จากฐานข้อมูล
+async function loadSystemSettings() {
+    try {
+        const { data, error } = await dbClient
+            .from('system_settings')
+            .select('setting_value')
+            .eq('setting_name', 'GEMINI_API_KEY')
+            .single();
+
+        if (data && data.setting_value) {
+            GEMINI_API_KEY = data.setting_value;
+            console.log('โหลด API Key จากฐานข้อมูลเรียบร้อยแล้ว');
+        }
+    } catch (err) {
+        console.error('ไม่สามารถโหลดการตั้งค่าระบบได้', err);
+    }
+}
     </script>
 </body>
 </html>
