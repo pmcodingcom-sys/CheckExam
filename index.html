@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartOMR - ระบบสแกนตรวจข้อสอบอัตโนมัติ</title>
+    
+    <!-- Google Fonts: Kanit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- OpenCV.js (สำหรับประมวลผลสแกนกระดาษคำตอบ) -->
+    <script async src="https://docs.opencv.org/4.7.0/opencv.js" type="text/javascript"></script>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Global Loader Overlay -->
+    <div id="globalLoader" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center space-y-4">
+            <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <p id="loaderText" class="text-slate-700 font-medium text-sm">กำลังประมวลผล...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Confirm Dialog Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-all">
+            <h3 id="confirmTitle" class="text-lg font-bold text-slate-900 mb-2">ยืนยันการทำรายการ</h3>
+            <p id="confirmMessage" class="text-slate-600 text-sm mb-6">คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="confirmBtnCancel" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">ยกเลิก</button>
+                <button id="confirmBtnOk" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        
+        <!-- Top Navbar -->
+        <header id="topNavbar" class="bg-white border-b border-slate-200 sticky top-0 z-30 flex items-center justify-between px-4 py-3 md:px-6">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md">
+                    <i data-lucide="scan-line" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">SmartOMR</h1>
+                    <p class="text-xs text-slate-500">ระบบตรวจข้อสอบปรนัยเรียลไทม์</p>
+                </div>
+            </div>
+            
+            <div id="userProfileArea" class="hidden items-center space-x-3">
+                <div class="text-right hidden sm:block">
+                    <div id="navUserName" class="text-sm font-semibold text-slate-800">ชื่อผู้ใช้งาน</div>
+                    <div id="navUserRole" class="text-xs text-indigo-600 font-medium">สิทธิ์การใช้งาน</div>
+                </div>
+                <button id="btnLogout" onclick="showLogoutModal()" class="flex items-center space-x-1 text-slate-500 hover:text-red-600 p-2 rounded-xl hover:bg-slate-100 transition">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium hidden md:inline">ออกจากระบบ</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Body Content -->
+        <div class="flex-1 flex overflow-hidden relative">
+            
+            <!-- Sidebar for Desktop (Logged in only) -->
+            <aside id="desktopSidebar" class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col justify-between p-4 space-y-6">
+                <nav class="space-y-1">
+                    <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="dashboard">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span>แดชบอร์ด</span>
+                    </button>
+                    <button onclick="switchTab('scan')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="scan">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                        <span>สแกนตรวจข้อสอบ</span>
+                    </button>
+                    <button onclick="switchTab('exams')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="exams">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span>จัดการเฉลยข้อสอบ</span>
+                    </button>
+                    <button onclick="switchTab('results')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="results">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                        <span>รายงานผลคะแนน</span>
+                    </button>
+                    <!-- Admin Only Menu -->
+                    <div id="adminMenuSection" class="hidden pt-4 border-t border-slate-100">
+                        <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">แอดมินจัดการ</p>
+                        <button onclick="switchTab('users')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="users">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <span>จัดการผู้ใช้งาน</span>
+                        </button>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Main Dynamic View Container -->
+            <main id="mainContent" class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6 bg-slate-50">
+                
+                <!-- 1. LANDING PAGE VIEW (Guest) -->
+                <section id="viewLanding" class="space-y-8 max-w-6xl mx-auto py-6">
+                    <div class="glassmorphism p-8 md:p-12 rounded-3xl border border-white/40 shadow-xl text-center space-y-6 relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+                        <span class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded-full">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> นวัตกรรมตรวจข้อสอบยุคใหม่
+                        </span>
+                        <h2 class="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+                            ตรวจกระดาษคำตอบเรียลไทม์<br><span class="text-indigo-600">แม่นยำ รวดเร็ว พร้อมสรุปผล</span>
+                        </h2>
+                        <p class="text-slate-600 text-base md:text-lg max-w-2xl mx-auto">
+                            ระบบช่วยตรวจข้อสอบปรนัยผ่านกล้องแบบเรียลไทม์ บันทึกผลผ่านระบบ Supabase ปลอดภัย ใช้งานสะดวกบนโทรศัพท์และคอมพิวเตอร์
+                        </p>
+                        <div class="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+                            <button onclick="showLoginModal()" class="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-200 transition flex items-center justify-center space-x-2">
+                                <i data-lucide="log-in" class="w-5 h-5"></i>
+                                <span>เข้าสู่ระบบใช้งาน</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Overview Public Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i data-lucide="check-circle-2" class="w-8 h-8"></i></div>
+                            <div>
+                                <div class="text-2xl font-bold text-slate-900" id="landingTotalExams">10+</div>
+                                <div class="text-sm text-slate-500">ชุดข้อสอบในระบบ</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><i data-lucide="award" class="w-8 h-8"></i></div>
+                            <div>
+                                <div class="text-2xl font-bold text-slate-900" id="landingTotalScanned">1,200+</div>
+                                <div class="text-sm text-slate-500">แผ่นที่ตรวจแล้ว</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl"><i data-lucide="zap" class="w-8 h-8"></i></div>
+                            <div>
+                                <div class="text-2xl font-bold text-slate-900">0.5 วินาที</div>
+                                <div class="text-sm text-slate-500">ความเร็วต่อการสแกน</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. DASHBOARD VIEW (User/Admin) -->
+                <section id="viewDashboard" class="hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-900">ภาพรวมระบบ (Dashboard)</h2>
+                        <button onclick="loadDashboardData()" class="p-2 text-slate-500 hover:text-indigo-600 bg-white rounded-xl shadow-sm border border-slate-200">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Cards Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <span class="text-xs text-slate-500 font-medium">ชุดข้อสอบทั้งหมด</span>
+                            <div id="statTotalExams" class="text-2xl font-extrabold text-indigo-600 mt-1">-</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <span class="text-xs text-slate-500 font-medium">ตรวจแล้วทั้งหมด</span>
+                            <div id="statTotalScanned" class="text-2xl font-extrabold text-emerald-600 mt-1">-</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <span class="text-xs text-slate-500 font-medium">คะแนนเฉลี่ย</span>
+                            <div id="statAvgScore" class="text-2xl font-extrabold text-amber-600 mt-1">-</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <span class="text-xs text-slate-500 font-medium">คะแนนสูงสุด</span>
+                            <div id="statMaxScore" class="text-2xl font-extrabold text-purple-600 mt-1">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Area -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <h3 class="text-sm font-semibold text-slate-700 mb-4">การกระจายตัวของคะแนน</h3>
+                            <canvas id="scoreDistChart" class="w-full max-h-60"></canvas>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <h3 class="text-sm font-semibold text-slate-700 mb-4">อัตราการตอบถูกแยกตามข้อ</h3>
+                            <canvas id="questionAccuracyChart" class="w-full max-h-60"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. SCANNER VIEW (แบบ ถ่ายภาพแล้วกดตรวจ) -->
+				<section id="viewScan" class="hidden space-y-6">
+					<div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+						<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+							<div>
+								<h2 class="text-lg font-bold text-slate-900">ระบบตรวจกระดาษคำตอบ</h2>
+								<p class="text-xs text-slate-500">เลือกชุดข้อสอบ ถ่ายภาพกระดาษคำตอบ แล้วกดตรวจสอบ</p>
+							</div>
+							<select id="scanExamSelect" onchange="onScanExamChange()" class="w-full sm:w-64 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+								<option value="">-- เลือกชุดข้อสอบ --</option>
+							</select>
+						</div>
+
+						<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+							<!-- Camera / Canvas Area -->
+							<div class="space-y-3">
+								<div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center shadow-inner">
+									<!-- วิดีโอสำหรับเล็ง -->
+									<video id="webcamVideo" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+									<!-- แคนวาสสำหรับแสดงภาพที่ถ่ายและวาดผลลัพธ์ -->
+									<canvas id="captureCanvas" class="w-full h-full object-contain hidden"></canvas>
+									
+									<div id="scanPlaceholder" class="text-center p-6 text-slate-400">
+										<i data-lucide="camera" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+										<p class="text-sm">เปิดกล้อง หรือ อัปโหลดรูปภาพ</p>
+									</div>
+								</div>
+
+								<!-- Action Buttons -->
+								<div class="flex flex-wrap gap-2" id="cameraControls">
+									<button id="btnStartCam" onclick="startCamera()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
+										<i data-lucide="video" class="w-4 h-4"></i> <span>เปิดกล้อง</span>
+									</button>
+									<label id="btnUploadImage" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2 cursor-pointer">
+										<i data-lucide="upload" class="w-4 h-4"></i> <span>อัปโหลดรูป</span>
+										<input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" class="hidden">
+									</label>
+									
+									<!-- ปุ่มที่แสดงตอนเปิดกล้องแล้ว -->
+									<button id="btnCapture" onclick="captureImage()" class="hidden w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
+										<i data-lucide="aperture" class="w-5 h-5"></i> <span>ถ่ายภาพ</span>
+									</button>
+								</div>
+								
+								<!-- ปุ่มที่แสดงหลังจากถ่ายภาพเสร็จ -->
+								<div class="flex gap-2 hidden" id="processControls">
+									<button onclick="retakeImage()" class="flex-1 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
+										<i data-lucide="refresh-ccw" class="w-4 h-4"></i> <span>ถ่ายใหม่</span>
+									</button>
+									<button onclick="processCapturedImage()" class="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
+										<i data-lucide="check-circle" class="w-5 h-5"></i> <span>ตรวจสอบคะแนน</span>
+									</button>
+								</div>
+							</div>
+
+							<!-- Scan Result Details (เหมือนเดิม แต่เพิ่มความชัดเจน) -->
+							<div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col justify-between space-y-4">
+								<!-- เนื้อหาส่วนนี้คงเดิมจากโค้ดชุดแรก (ช่องรหัสนักเรียน, คะแนน, ตารางผล) -->
+								<!-- ... -->
+								<!-- (เพื่อความกระชับ ให้คงโค้ดส่วน Scan Result Details ของเดิมไว้ได้เลยครับ) -->
+								<div>
+									<h3 class="text-sm font-bold text-slate-800 mb-3 border-b pb-2">ผลการตรวจวิเคราะห์</h3>
+									<div class="space-y-3">
+										<div class="grid grid-cols-2 gap-2">
+											<div>
+												<label class="text-xs text-slate-500">รหัสนักเรียน</label>
+												<input type="text" id="scanStudentId" class="w-full p-2 bg-white border border-slate-200 rounded-xl text-sm mt-1">
+											</div>
+											<div>
+												<label class="text-xs text-slate-500">ชื่อ-นามสกุล</label>
+												<input type="text" id="scanStudentName" class="w-full p-2 bg-white border border-slate-200 rounded-xl text-sm mt-1">
+											</div>
+										</div>
+
+										<div class="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+											<div>
+												<span class="text-xs text-slate-500 block">คะแนนที่ได้</span>
+												<span id="scanScoreDisplay" class="text-3xl font-extrabold text-indigo-600">0 / 0</span>
+											</div>
+											<div id="scanStatusBadge" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
+												รอตรวจสอบ
+											</div>
+										</div>
+
+										<div class="max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 p-2">
+											<table class="w-full text-left text-xs">
+												<thead>
+													<tr class="border-b text-slate-400">
+														<th class="p-1">ข้อ</th>
+														<th class="p-1">ตอบ</th>
+														<th class="p-1">เฉลย</th>
+														<th class="p-1">ผล</th>
+													</tr>
+												</thead>
+												<tbody id="scanAnswersList">
+													<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+
+								<button id="btnSaveResult" onclick="saveScanResult()" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+									<i data-lucide="save" class="w-4 h-4"></i> <span>บันทึกผลคะแนน</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</section>
+
+                <!-- 4. EXAMS & ANSWER KEYS VIEW -->
+                <section id="viewExams" class="hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-900">จัดการเฉลยข้อสอบ</h2>
+                        <button onclick="openExamModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> <span>สร้างชุดข้อสอบ</span>
+                        </button>
+                    </div>
+
+                    <div id="examsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Dynamic Exams List -->
+                    </div>
+                </section>
+
+                <!-- 5. RESULTS REPORT VIEW -->
+                <section id="viewResults" class="hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 class="text-xl font-bold text-slate-900">รายงานผลคะแนนสอบ</h2>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <input type="text" id="searchResultInput" oninput="filterResultsTable()" placeholder="ค้นหาชื่อ / รหัสนักเรียน..." class="p-2.5 bg-white border border-slate-200 rounded-xl text-sm flex-1 sm:w-64 outline-none">
+                            <button onclick="exportResultsCSV()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-xl transition flex items-center space-x-2">
+                                <i data-lucide="download" class="w-4 h-4"></i> <span>ส่งออก CSV</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead class="bg-slate-50 text-slate-700 uppercase text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4">นักเรียน</th>
+                                        <th class="p-4">ชุดข้อสอบ</th>
+                                        <th class="p-4 text-center">คะแนน</th>
+                                        <th class="p-4 text-center">วันที่สแกน</th>
+                                        <th class="p-4 text-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsTableBody" class="divide-y divide-slate-100">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. USER MANAGEMENT VIEW (Admin Only) -->
+                <section id="viewUsers" class="hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-900">จัดการผู้ใช้งานระบบ</h2>
+                        <button onclick="openUserModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> <span>เพิ่มผู้ใช้งาน</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead class="bg-slate-50 text-slate-700 uppercase text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4">ชื่อผู้ใช้ (Username)</th>
+                                        <th class="p-4">ชื่อ-นามสกุล</th>
+                                        <th class="p-4">สิทธิ์การใช้งาน</th>
+                                        <th class="p-4 text-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody" class="divide-y divide-slate-100">
+                                    <!-- Dynamic Users List -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- Bottom Navigation Bar for Mobile -->
+        <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around px-2 py-2 z-40 hidden">
+            <button onclick="switchTab('dashboard')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">แดชบอร์ด</span>
+            </button>
+            <button onclick="switchTab('scan')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="scan">
+                <i data-lucide="camera" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">สแกน</span>
+            </button>
+            
+            <!-- Admin Panel Trigger Button -->
+            <button id="mobileAdminTrigger" onclick="toggleAdminPanel()" class="hidden flex flex-col items-center text-white bg-indigo-600 p-2.5 rounded-2xl shadow-lg -mt-5">
+                <i data-lucide="grid" class="w-5 h-5"></i>
+            </button>
+
+            <button onclick="switchTab('exams')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="exams">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">เฉลย</span>
+            </button>
+            <button onclick="switchTab('results')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="results">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">รายงาน</span>
+            </button>
+        </nav>
+
+        <!-- Admin Slide-Up Grid Panel (Mobile Only) -->
+        <div id="adminMobilePanel" class="fixed inset-x-0 bottom-16 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 z-30 md:hidden">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                <span class="text-xs font-bold text-slate-700">เมนูการจัดการสำหรับแอดมิน</span>
+                <button onclick="toggleAdminPanel()" class="p-1 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="switchTab('users'); toggleAdminPanel();" class="flex flex-col items-center p-3 bg-indigo-50 text-indigo-700 rounded-xl">
+                    <i data-lucide="users" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs font-medium">ผู้ใช้งาน</span>
+                </button>
+                <button onclick="switchTab('results'); toggleAdminPanel();" class="flex flex-col items-center p-3 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <i data-lucide="file-spreadsheet" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs font-medium">รายงานรวม</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODALS -->
+    <!-- 1. Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative">
+            <div class="text-center space-y-2 mb-6">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900">เข้าสู่ระบบ SmartOMR</h3>
+                <p class="text-xs text-slate-500">กรอก Username และ Password ของคุณ</p>
+            </div>
+            <form id="loginForm" onsubmit="handleCustomLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">ชื่อผู้ใช้ (Username)</label>
+                    <input type="text" id="loginUsername" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">รหัสผ่าน (Password)</label>
+                    <input type="password" id="loginPassword" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-100 transition">
+                        เข้าสู่ระบบ
+                    </button>
+                </div>
+            </form>
+            <button onclick="hideLoginModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+	<!-- 2. Exam Create/Edit Modal -->
+	<div id="examModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-2 sm:p-4">
+		<!-- ปรับให้ใช้ flex-col และจำกัดความสูงที่ 90vh (90% ของหน้าจอ) -->
+		<div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+			
+			<!-- ส่วนหัว (ล็อกติดด้านบน) -->
+			<div class="px-6 py-4 border-b border-slate-100 bg-white">
+				<h3 id="examModalTitle" class="text-lg font-bold text-slate-900">สร้างชุดข้อสอบใหม่</h3>
+			</div>
+			
+			<!-- ฟอร์มครอบทั้งเนื้อหาและปุ่ม -->
+			<form id="examForm" onsubmit="handleSaveExam(event)" class="flex flex-col flex-1 overflow-hidden">
+				<input type="hidden" id="examFormId">
+				
+				<!-- ส่วนเนื้อหาที่สามารถเลื่อนได้ (Scrollable Area) -->
+				<div class="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/50">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="text-xs font-semibold text-slate-700 block mb-1">ชื่อชุดข้อสอบ</label>
+							<input type="text" id="examTitle" required placeholder="เช่น วิทยาการคำนวณ ป.3" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
+						</div>
+						<div>
+							<label class="text-xs font-semibold text-slate-700 block mb-1">รหัสวิชา / รหัสชั้น</label>
+							<input type="text" id="examSubjectCode" required placeholder="COM-P3" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
+						</div>
+					</div>
+
+					<div>
+						<label class="text-xs font-semibold text-slate-700 block mb-1">รูปแบบกระดาษคำตอบ (Template)</label>
+						<select id="examTemplate" onchange="generateAnswerKeyInputs()" class="w-full p-2.5 bg-indigo-50 text-indigo-700 font-medium border border-indigo-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer">
+							<option value="20_items">แบบ 20 ข้อ (แบ่ง 2 คอลัมน์)</option>
+							<option value="10_items">แบบ 10 ข้อ (แบ่ง 2 คอลัมน์)</option>
+						</select>
+					</div>
+
+					<div>
+						<label class="text-xs font-bold text-slate-800 block mb-2">กำหนดเฉลยคำตอบถูกต้อง</label>
+						<!-- กล่องนี้จะให้ขยายตามเนื้อหา แล้วไปใช้แถบเลื่อนของกล่องใหญ่แทน -->
+						<div id="answerKeysInputs"></div>
+					</div>
+				</div>
+
+				<!-- ส่วนปุ่มกด (ล็อกติดด้านล่างเสมอ) -->
+				<div class="px-6 py-4 border-t border-slate-200 bg-white flex justify-end space-x-3">
+					<button type="button" onclick="closeExamModal()" class="px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">ยกเลิก</button>
+					<button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-200 transition">บันทึกเฉลย</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+    <!-- 3. User Create/Edit Modal -->
+    <div id="userModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <h3 id="userModalTitle" class="text-lg font-bold text-slate-900 mb-4">เพิ่มผู้ใช้งานระบบ</h3>
+            <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-3">
+                <input type="hidden" id="userFormId">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">Username</label>
+                    <input type="text" id="userUsername" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">Password</label>
+                    <input type="text" id="userPassword" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">ชื่อ-นามสกุล</label>
+                    <input type="text" id="userFullName" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700 block mb-1">สิทธิ์การใช้งาน</label>
+                    <select id="userRole" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                        <option value="user">ครูผู้สอน (User)</option>
+                        <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-sm text-slate-600 bg-slate-100 rounded-xl">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-xl">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APPLICATION SCRIPT -->
+    <script>
+        // Supabase Initialization
+        const SUPABASE_URL = 'https://kjlzyqjhfogsfupxasen.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable__wPVXnik4BNWJQy_6Ut5JA_vD9HWpoP';
+        
+		// เพิ่ม Gemini API Key ตรงนี้
+		const GEMINI_API_KEY = 'AQ.Ab8RN6Kyd1BsqJPlru8jSsWop5dLMK4riWhPGRw06vjur0iFBA';
+
+        // ห้ามใช้ตัวแปรชื่อ supabase
+        const dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // App State
+        let currentUser = null;
+        let activeTab = 'landing';
+        let localStream = null;
+        let scoreChart = null;
+        let accuracyChart = null;
+        let currentScannedData = null;
+        let currentExamKeys = [];
+
+        // DOM Load Initializer
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            checkSession();
+        });
+
+        // ------------------ AUTH & SESSION MANAGEMENT ------------------
+        function checkSession() {
+            const savedUser = localStorage.getItem('omr_session');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                setupAuthenticatedUI();
+                switchTab('dashboard');
+            } else {
+                setupGuestUI();
+                switchTab('landing');
+            }
+        }
+
+        function setupAuthenticatedUI() {
+            document.getElementById('userProfileArea').classList.remove('hidden');
+            document.getElementById('userProfileArea').classList.add('flex');
+            document.getElementById('navUserName').innerText = currentUser.full_name;
+            document.getElementById('navUserRole').innerText = currentUser.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'ครูผู้สอน';
+
+            document.getElementById('desktopSidebar').classList.remove('hidden');
+            document.getElementById('mobileBottomNav').classList.remove('hidden');
+
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminMenuSection').classList.remove('hidden');
+                document.getElementById('mobileAdminTrigger').classList.remove('hidden');
+            } else {
+                document.getElementById('adminMenuSection').classList.add('hidden');
+                document.getElementById('mobileAdminTrigger').classList.add('hidden');
+            }
+        }
+
+        function setupGuestUI() {
+            document.getElementById('userProfileArea').classList.add('hidden');
+            document.getElementById('desktopSidebar').classList.add('hidden');
+            document.getElementById('mobileBottomNav').classList.add('hidden');
+            document.getElementById('adminMobilePanel').classList.add('translate-y-full');
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function hideLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        async function handleCustomLogin(e) {
+            e.preventDefault();
+            showLoader('กำลังตรวจสอบข้อมูล...');
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            try {
+                const { data, error } = await dbClient
+                    .from('app_users')
+                    .select('*')
+                    .eq('username', u)
+                    .eq('password', p)
+                    .single();
+
+                hideLoader();
+
+                if (error || !data) {
+                    showToast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
+                    return;
+                }
+
+                currentUser = data;
+                localStorage.setItem('omr_session', JSON.stringify(currentUser));
+                hideLoginModal();
+                setupAuthenticatedUI();
+                switchTab('dashboard');
+                showToast(`ยินดีต้อนรับคุณ ${currentUser.full_name}`, 'success');
+
+            } catch (err) {
+                hideLoader();
+                showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+            }
+        }
+
+        function showLogoutModal() {
+            showConfirmDialog('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', () => {
+                localStorage.removeItem('omr_session');
+                currentUser = null;
+                stopCamera();
+                setupGuestUI();
+                switchTab('landing');
+                showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+            });
+        }
+
+        // ------------------ ROUTING & NAVIGATION ------------------
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const views = ['Landing', 'Dashboard', 'Scan', 'Exams', 'Results', 'Users'];
+            views.forEach(v => {
+                const el = document.getElementById(`view${v}`);
+                if (el) el.classList.add('hidden');
+            });
+
+            // Active Class Cleanup for Sidebar/Nav
+            document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(btn => {
+                btn.classList.remove('text-indigo-600', 'bg-indigo-50');
+            });
+
+            const currentView = document.getElementById(`view${capitalize(tabId)}`);
+            if (currentView) currentView.classList.remove('hidden');
+
+            document.querySelectorAll(`[data-tab="${tabId}"]`).forEach(btn => {
+                btn.classList.add('text-indigo-600');
+            });
+
+            // Fetch Tab Data
+            if (tabId === 'dashboard') loadDashboardData();
+            if (tabId === 'scan') loadExamsForScan();
+            if (tabId === 'exams') loadExamsList();
+            if (tabId === 'results') loadResultsTable();
+            if (tabId === 'users' && currentUser?.role === 'admin') loadUsersList();
+        }
+
+        function toggleAdminPanel() {
+            const panel = document.getElementById('adminMobilePanel');
+            panel.classList.toggle('translate-y-full');
+        }
+
+        // ------------------ DASHBOARD MODULE ------------------
+        async function loadDashboardData() {
+            showLoader('กำลังโหลดข้อมูลแดชบอร์ด...');
+            try {
+                let queryExams = dbClient.from('exams').select('id', { count: 'exact' });
+                let queryResults = dbClient.from('exam_results').select('score, total_score, exam_id');
+
+                if (currentUser.role !== 'admin') {
+                    queryExams = queryExams.eq('user_id', currentUser.id);
+                    queryResults = queryResults.eq('user_id', currentUser.id);
+                }
+
+                const [{ count: totalExams }, { data: results }] = await Promise.all([queryExams, queryResults]);
+
+                hideLoader();
+
+                const totalScanned = results?.length || 0;
+                let avgScore = 0;
+                let maxScore = 0;
+
+                if (totalScanned > 0) {
+                    const totalPct = results.reduce((acc, r) => acc + ((r.score / r.total_score) * 100), 0);
+                    avgScore = (totalPct / totalScanned).toFixed(1) + '%';
+                    const maxPct = Math.max(...results.map(r => (r.score / r.total_score) * 100));
+                    maxScore = maxPct.toFixed(0) + '%';
+                }
+
+                document.getElementById('statTotalExams').innerText = totalExams || 0;
+                document.getElementById('statTotalScanned').innerText = totalScanned;
+                document.getElementById('statAvgScore').innerText = avgScore || '0%';
+                document.getElementById('statMaxScore').innerText = maxScore || '0%';
+
+                renderDashboardCharts(results || []);
+
+            } catch (err) {
+                hideLoader();
+                console.error(err);
+            }
+        }
+
+        function renderDashboardCharts(results) {
+            // Score Distribution Chart
+            const ctx1 = document.getElementById('scoreDistChart').getContext('2d');
+            if (scoreChart) scoreChart.destroy();
+
+            const dist = [0, 0, 0, 0]; // 0-25%, 26-50%, 51-75%, 76-100%
+            results.forEach(r => {
+                const pct = (r.score / r.total_score) * 100;
+                if (pct <= 25) dist[0]++;
+                else if (pct <= 50) dist[1]++;
+                else if (pct <= 75) dist[2]++;
+                else dist[3]++;
+            });
+
+            scoreChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['0-25%', '26-50%', '51-75%', '76-100%'],
+                    datasets: [{
+                        label: 'จำนวนนักเรียน',
+                        data: dist,
+                        backgroundColor: '#6366f1',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Question Accuracy Demo Chart
+            const ctx2 = document.getElementById('questionAccuracyChart').getContext('2d');
+            if (accuracyChart) accuracyChart.destroy();
+
+            accuracyChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: ['ข้อ 1', 'ข้อ 2', 'ข้อ 3', 'ข้อ 4', 'ข้อ 5', 'ข้อ 6', 'ข้อ 7', 'ข้อ 8', 'ข้อ 9', 'ข้อ 10'],
+                    datasets: [{
+                        label: 'อัตราตอบถูก (%)',
+                        data: [85, 90, 65, 40, 75, 80, 95, 30, 70, 88],
+                        borderColor: '#10b981',
+                        tension: 0.3,
+                        fill: false
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ------------------ REALTIME CAMERA & OMR SCANNER ------------------
+        async function loadExamsForScan() {
+            let query = dbClient.from('exams').select('id, title, subject_code');
+            if (currentUser.role !== 'admin') query = query.eq('user_id', currentUser.id);
+
+            const { data } = await query;
+            const select = document.getElementById('scanExamSelect');
+            select.innerHTML = '<option value="">-- เลือกชุดข้อสอบ --</option>';
+            data?.forEach(e => {
+                select.innerHTML += `<option value="${e.id}">${e.subject_code} - ${e.title}</option>`;
+            });
+        }
+
+        async function onScanExamChange() {
+            const examId = document.getElementById('scanExamSelect').value;
+            if (!examId) return;
+
+            // Fetch Correct Answers
+            const { data } = await dbClient.from('answer_keys').select('*').eq('exam_id', examId).order('question_number');
+            currentExamKeys = data || [];
+        }
+
+        // ------------------ CAMERA & IMAGE CAPTURE SYSTEM ------------------
+		let imageCapture = null;
+
+		async function startCamera() {
+			try {
+				localStream = await navigator.mediaDevices.getUserMedia({ 
+					video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } 
+				});
+				const video = document.getElementById('webcamVideo');
+				video.srcObject = localStream;
+				video.classList.remove('hidden');
+				
+				document.getElementById('captureCanvas').classList.add('hidden');
+				document.getElementById('scanPlaceholder').classList.add('hidden');
+				
+				// จัดการปุ่ม
+				document.getElementById('btnStartCam').classList.add('hidden');
+				document.getElementById('btnUploadImage').classList.add('hidden');
+				document.getElementById('btnCapture').classList.remove('hidden');
+				document.getElementById('processControls').classList.add('hidden');
+				
+			} catch (err) {
+				showToast('ไม่สามารถเปิดกล้องได้ โปรดตรวจสอบสิทธิ์การใช้งาน', 'error');
+			}
+		}
+
+		function captureImage() {
+			const video = document.getElementById('webcamVideo');
+			const canvas = document.getElementById('captureCanvas');
+			const ctx = canvas.getContext('2d');
+			
+			// กำหนดขนาดแคนวาสให้เท่ากับวิดีโอ
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+			
+			// วาดภาพจากวิดีโอลงแคนวาส
+			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+			
+			// ปิดวิดีโอ แสดงแคนวาส
+			video.classList.add('hidden');
+			canvas.classList.remove('hidden');
+			
+			// ปิดสตรีมกล้องเพื่อประหยัดแบตเตอรี่
+			if (localStream) {
+				localStream.getTracks().forEach(t => t.stop());
+			}
+
+			// สลับปุ่มควบคุม
+			document.getElementById('btnCapture').classList.add('hidden');
+			document.getElementById('cameraControls').classList.add('hidden');
+			document.getElementById('processControls').classList.remove('hidden');
+		}
+
+		function retakeImage() {
+			document.getElementById('processControls').classList.add('hidden');
+			document.getElementById('cameraControls').classList.remove('hidden');
+			
+			// รีเซ็ตค่า UI
+			document.getElementById('scanScoreDisplay').innerText = '0 / 0';
+			document.getElementById('scanStatusBadge').innerText = 'รอตรวจสอบ';
+			document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold';
+			document.getElementById('scanAnswersList').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>';
+			document.getElementById('btnSaveResult').disabled = true;
+
+			startCamera();
+		}
+
+		function handleFileUpload(e) {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				const img = new Image();
+				img.onload = () => {
+					const canvas = document.getElementById('captureCanvas');
+					const ctx = canvas.getContext('2d');
+					canvas.width = img.width;
+					canvas.height = img.height;
+					ctx.drawImage(img, 0, 0);
+					
+					document.getElementById('webcamVideo').classList.add('hidden');
+					document.getElementById('scanPlaceholder').classList.add('hidden');
+					canvas.classList.remove('hidden');
+					
+					document.getElementById('cameraControls').classList.add('hidden');
+					document.getElementById('processControls').classList.remove('hidden');
+				};
+				img.src = event.target.result;
+			};
+			reader.readAsDataURL(file);
+		}
+
+		// ------------------ ระบบประมวลผลกระดาษคำตอบด้วย AI (Gemini 1.5 Flash) ------------------
+		async function processCapturedImage() {
+			if (currentExamKeys.length === 0) {
+				showToast('กรุณาเลือกชุดข้อสอบก่อนกดตรวจสอบ', 'warning');
+				return;
+			}
+
+			if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+				showToast('กรุณาตั้งค่า Gemini API Key ก่อนใช้งาน', 'error');
+				return;
+			}
+
+			showLoader('AI กำลังวิเคราะห์กระดาษคำตอบ โปรดรอสักครู่...');
+			
+			try {
+				const canvas = document.getElementById('captureCanvas');
+				// ลดขนาดภาพลงเล็กน้อยก่อนส่งให้ AI เพื่อความรวดเร็วและประหยัดเน็ต
+				const base64Image = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+				
+				const totalQuestions = currentExamKeys.length;
+				
+				// สร้าง Prompt สั่งงาน Gemini
+				const promptText = `
+				คุณคือ AI ตรวจกระดาษคำตอบแบบปรนัย 
+				ภาพที่แนบมาคือกระดาษคำตอบที่มีจำนวน ${totalQuestions} ข้อ
+				ตัวเลือกในแต่ละข้อคือ "ก", "ข", "ค", "ง" 
+				นักเรียนจะทำเครื่องหมายกากบาท (X) หรือเขียนเส้นลงในช่องตัวเลือกที่ต้องการ
+				
+				หน้าที่ของคุณ:
+				ให้อ่านว่าในแต่ละข้อ (ตั้งแต่ข้อ 1 ถึง ${totalQuestions}) นักเรียนเลือกตอบข้อใด
+				
+				ข้อกำหนดในการตอบกลับ:
+				คืนค่าผลลัพธ์เป็นโครงสร้าง JSON เท่านั้น โดยให้ Key เป็นเลขข้อ (String) และ Value เป็นตัวเลือก (ก, ข, ค, ง)
+				หากข้อไหนนักเรียนไม่ได้ตอบ หรืออ่านไม่ออกชัดเจน ให้กำหนด Value เป็น null
+				ห้ามอธิบายเพิ่มเติม ห้ามมี Markdown กลับมา ให้ตอบแค่ JSON เท่านั้น
+				
+				ตัวอย่าง JSON ที่ต้องการ:
+				{
+				  "1": "ก",
+				  "2": "ค",
+				  "3": null
+				}
+				`;
+
+				// เรียกใช้งาน Gemini API
+				const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						contents: [{
+							parts: [
+								{ text: promptText },
+								{ inline_data: { mime_type: "image/jpeg", data: base64Image } }
+							]
+						}],
+						generationConfig: {
+							temperature: 0.1, // ตั้งค่าต่ำเพื่อให้ AI ตอบแม่นยำ ไม่เพ้อเจ้อ
+							response_mime_type: "application/json" // บังคับให้ออกมาเป็น JSON
+						}
+					})
+				});
+
+				if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อกับ Gemini API');
+
+				const result = await response.json();
+				const aiResponseText = result.candidates[0].content.parts[0].text;
+				
+				// แปลงข้อความ JSON ที่ AI ตอบกลับมาให้อยู่ในรูปแบบ Object
+				const studentAnswers = JSON.parse(aiResponseText);
+
+				// ------- กระบวนการตรวจให้คะแนน -------
+				let score = 0;
+				const listTbody = document.getElementById('scanAnswersList');
+				listTbody.innerHTML = '';
+
+				currentExamKeys.forEach((key) => {
+					const detectedOption = studentAnswers[key.question_number.toString()];
+					const isCorrect = detectedOption === key.correct_option;
+					
+					if (isCorrect) score++;
+
+					const displayAnswer = detectedOption ? detectedOption : '<span class="text-slate-300">ว่าง</span>';
+
+					listTbody.innerHTML += `
+						<tr class="border-b">
+							<td class="p-2">ข้อ ${key.question_number}</td>
+							<td class="p-2 font-bold ${isCorrect ? 'text-emerald-600' : (detectedOption ? 'text-red-500' : 'text-slate-400')}">${displayAnswer}</td>
+							<td class="p-2 text-slate-400">${key.correct_option}</td>
+							<td class="p-2 font-bold ${isCorrect ? 'text-emerald-500' : 'text-red-500'}">${isCorrect ? '✔' : '✘'}</td>
+						</tr>
+					`;
+				});
+
+				// อัปเดต UI หน้าจอ
+				document.getElementById('scanScoreDisplay').innerText = `${score} / ${totalQuestions}`;
+				document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold';
+				document.getElementById('scanStatusBadge').innerText = 'ตรวจสำเร็จ (โดย AI)';
+
+				currentScannedData = {
+					score,
+					total_score: totalQuestions,
+					answers: studentAnswers
+				};
+
+				document.getElementById('btnSaveResult').disabled = false;
+				
+				hideLoader();
+				showToast('AI ตรวจกระดาษคำตอบสำเร็จ', 'success');
+
+			} catch (err) {
+				hideLoader();
+				console.error("Gemini Error:", err);
+				showToast('ไม่สามารถประมวลผลภาพได้ กรุณาลองถ่ายภาพใหม่อีกครั้ง', 'error');
+			}
+		}
+
+        function stopCamera() {
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            document.getElementById('webcamVideo').classList.add('hidden');
+            document.getElementById('scanPlaceholder').classList.remove('hidden');
+            document.getElementById('btnStartCam').classList.remove('hidden');
+            document.getElementById('btnStopCam').classList.add('hidden');
+        }
+
+        function processVideoFrame() {
+            if (!localStream) return;
+            const video = document.getElementById('webcamVideo');
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                analyzeOMRImage(video);
+            }
+            setTimeout(() => requestAnimationFrame(processVideoFrame), 800); // Frame Rate Throttle
+        }
+
+        // Mock OMR Computer Vision Processor
+        function analyzeOMRImage(imageSource) {
+            if (currentExamKeys.length === 0) {
+                showToast('กรุณาเลือกชุดข้อสอบก่อนสแกน', 'warning');
+                return;
+            }
+
+            // Simulate Detection of Choice Bubbles (ก, ข, ค, ง)
+            const simulatedStudentAnswers = {};
+            let score = 0;
+            const options = ['ก', 'ข', 'ค', 'ง'];
+
+            const listTbody = document.getElementById('scanAnswersList');
+            listTbody.innerHTML = '';
+
+            currentExamKeys.forEach((key, idx) => {
+                // Random/Simulated Algorithm for Demo (Substitute with OpenCV contours in full deployment)
+                const detectedOption = options[Math.floor(Math.random() * options.length)];
+                simulatedStudentAnswers[key.question_number] = detectedOption;
+
+                const isCorrect = detectedOption === key.correct_option;
+                if (isCorrect) score++;
+
+                listTbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-1">ข้อ ${key.question_number}</td>
+                        <td class="p-1 font-bold ${isCorrect ? 'text-emerald-600' : 'text-red-500'}">${detectedOption}</td>
+                        <td class="p-1 text-slate-400">${key.correct_option}</td>
+                        <td class="p-1">${isCorrect ? '✔' : '✘'}</td>
+                    </tr>
+                `;
+            });
+
+            const total = currentExamKeys.length;
+            document.getElementById('scanScoreDisplay').innerText = `${score} / ${total}`;
+            document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold';
+            document.getElementById('scanStatusBadge').innerText = 'สแกนสำเร็จ';
+
+            currentScannedData = {
+                score,
+                total_score: total,
+                answers: simulatedStudentAnswers
+            };
+
+            document.getElementById('btnSaveResult').disabled = false;
+        }
+
+        async function saveScanResult() {
+            const examId = document.getElementById('scanExamSelect').value;
+            const studentId = document.getElementById('scanStudentId').value.trim();
+            const studentName = document.getElementById('scanStudentName').value.trim();
+
+            if (!studentId || !studentName) {
+                showToast('กรุณากรอกรหัสและชื่อนักเรียน', 'warning');
+                return;
+            }
+
+            showLoader('กำลังบันทึกข้อมูลคะแนน...');
+            try {
+                const { error } = await dbClient.from('exam_results').insert([{
+                    exam_id: examId,
+                    user_id: currentUser.id,
+                    student_id: studentId,
+                    student_name: studentName,
+                    score: currentScannedData.score,
+                    total_score: currentScannedData.total_score,
+                    student_answers: currentScannedData.answers
+                }]);
+
+                hideLoader();
+                if (error) throw error;
+
+                showToast('บันทึกผลการตรวจข้อสอบเรียบร้อยแล้ว', 'success');
+                document.getElementById('btnSaveResult').disabled = true;
+                document.getElementById('scanStudentId').value = '';
+                document.getElementById('scanStudentName').value = '';
+
+            } catch (err) {
+                hideLoader();
+                showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+            }
+        }
+
+        // ------------------ EXAM MANAGEMENT ------------------
+        async function loadExamsList() {
+            showLoader('กำลังโหลดรายการชุดข้อสอบ...');
+            let query = dbClient.from('exams').select('*');
+            if (currentUser.role !== 'admin') query = query.eq('user_id', currentUser.id);
+
+            const { data } = await query;
+            hideLoader();
+
+            const container = document.getElementById('examsList');
+            container.innerHTML = '';
+
+            data?.forEach(exam => {
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">${exam.subject_code}</span>
+                            <h3 class="text-base font-bold text-slate-900 mt-2">${exam.title}</h3>
+                            <p class="text-xs text-slate-500 mt-1">จำนวน ${exam.total_questions} ข้อ</p>
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4 border-t mt-4">
+                            <button onclick="deleteExam('${exam.id}')" class="p-2 text-slate-400 hover:text-red-600 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function openExamModal() {
+            document.getElementById('examFormId').value = '';
+            document.getElementById('examForm').reset();
+            generateAnswerKeyInputs();
+            document.getElementById('examModal').classList.remove('hidden');
+        }
+
+        function closeExamModal() {
+            document.getElementById('examModal').classList.add('hidden');
+        }
+
+		// ------------------ EXAM MANAGEMENT (อัปเดตรองรับ Template) ------------------
+
+		function generateAnswerKeyInputs() {
+			const template = document.getElementById('examTemplate').value;
+			const count = template === '10_items' ? 10 : 20;
+			const midPoint = count / 2; // แบ่งครึ่งคอลัมน์
+			
+			const container = document.getElementById('answerKeysInputs');
+			
+			const options = ['ก', 'ข', 'ค', 'ง'];
+			
+			// เตรียม HTML สำหรับแต่ละคอลัมน์
+			let htmlCol1 = '<div class="space-y-2">';
+			let htmlCol2 = '<div class="space-y-2">';
+
+			for (let i = 1; i <= count; i++) {
+				let rowHtml = `
+					<div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm text-sm hover:border-indigo-400 transition">
+						<span class="font-bold text-slate-700 w-12 text-center bg-slate-100 rounded py-1">ข้อ ${i}</span>
+						<div class="flex space-x-4 pr-2">
+							${options.map(opt => `
+								<label class="flex items-center space-x-1.5 cursor-pointer hover:text-indigo-600">
+									<input type="radio" name="ans_${i}" value="${opt}" ${opt === 'ก' ? 'checked' : ''} class="accent-indigo-600 w-4 h-4 cursor-pointer">
+									<span class="font-medium">${opt}</span>
+								</label>
+							`).join('')}
+						</div>
+					</div>
+				`;
+				
+				if (i <= midPoint) {
+					htmlCol1 += rowHtml;
+				} else {
+					htmlCol2 += rowHtml;
+				}
+			}
+
+			htmlCol1 += '</div>';
+			htmlCol2 += '</div>';
+			
+			// สร้าง div คลุมด้านในแทน เพื่อไม่ให้ทับคลาส overflow-y-auto ของกล่องนอก
+			container.innerHTML = `
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+					${htmlCol1}
+					${htmlCol2}
+				</div>
+			`;
+		}
+
+		async function handleSaveExam(e) {
+			e.preventDefault();
+			showLoader('กำลังบันทึกชุดข้อสอบ...');
+
+			const title = document.getElementById('examTitle').value;
+			const subject_code = document.getElementById('examSubjectCode').value;
+			const template = document.getElementById('examTemplate').value;
+			const total = template === '10_items' ? 10 : 20;
+
+			try {
+				// บันทึกข้อมูล Exam พร้อมระบุ Template
+				const { data: examData, error: examErr } = await dbClient.from('exams').insert([{
+					user_id: currentUser.id,
+					title,
+					subject_code,
+					total_questions: total,
+					template_type: template
+				}]).select().single();
+
+				if (examErr) throw examErr;
+
+				// ดึงค่าเฉลยเพื่อบันทึก
+				const keys = [];
+				for (let i = 1; i <= total; i++) {
+					const selected = document.querySelector(`input[name="ans_${i}"]:checked`)?.value || 'ก';
+					keys.push({
+						exam_id: examData.id,
+						question_number: i,
+						correct_option: selected
+					});
+				}
+
+				await dbClient.from('answer_keys').insert(keys);
+
+				hideLoader();
+				closeExamModal();
+				showToast('สร้างชุดข้อสอบสำเร็จ', 'success');
+				loadExamsList();
+
+			} catch (err) {
+				hideLoader();
+				console.error(err);
+				showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+			}
+		}
+
+        function deleteExam(id) {
+            showConfirmDialog('ลบชุดข้อสอบ', 'คุณต้องการลบชุดข้อสอบนี้ใช่หรือไม่?', async () => {
+                showLoader('กำลังลบ...');
+                await dbClient.from('exams').delete().eq('id', id);
+                hideLoader();
+                showToast('ลบข้อมูลเรียบร้อยแล้ว', 'success');
+                loadExamsList();
+            });
+        }
+
+        // ------------------ RESULTS REPORT TABLE ------------------
+        let globalResultsData = [];
+        async function loadResultsTable() {
+            showLoader('กำลังโหลดรายงาน...');
+            let query = dbClient.from('exam_results').select('*, exams(title, subject_code)');
+            if (currentUser.role !== 'admin') query = query.eq('user_id', currentUser.id);
+
+            const { data } = await query;
+            hideLoader();
+
+            globalResultsData = data || [];
+            renderResultsTable(globalResultsData);
+        }
+
+        function renderResultsTable(data) {
+            const tbody = document.getElementById('resultsTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4">
+                            <div class="font-semibold text-slate-800">${r.student_name}</div>
+                            <div class="text-xs text-slate-400">ID: ${r.student_id}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-xs font-semibold text-slate-600">${r.exams?.subject_code} - ${r.exams?.title}</span>
+                        </td>
+                        <td class="p-4 text-center font-bold text-indigo-600">
+                            ${r.score} / ${r.total_score}
+                        </td>
+                        <td class="p-4 text-center text-xs text-slate-400">
+                            ${new Date(r.scanned_at).toLocaleDateString('th-TH')}
+                        </td>
+                        <td class="p-4 text-right">
+                            <button onclick="deleteResult('${r.id}')" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function filterResultsTable() {
+            const q = document.getElementById('searchResultInput').value.toLowerCase();
+            const filtered = globalResultsData.filter(r => 
+                r.student_name.toLowerCase().includes(q) || r.student_id.toLowerCase().includes(q)
+            );
+            renderResultsTable(filtered);
+        }
+
+        function exportResultsCSV() {
+            if (globalResultsData.length === 0) {
+                showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+                return;
+            }
+
+            let csv = '\uFEFF'; // UTF-8 BOM
+            csv += 'รหัสนักเรียน,ชื่อ-นามสกุล,วิชา,คะแนนที่ได้,คะแนนเต็ม,วันที่สแกน\n';
+
+            globalResultsData.forEach(r => {
+                csv += `"${r.student_id}","${r.student_name}","${r.exams?.subject_code}","${r.score}","${r.total_score}","${new Date(r.scanned_at).toLocaleString('th-TH')}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `OMR_Report_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        function deleteResult(id) {
+            showConfirmDialog('ลบผลคะแนน', 'คุณต้องการลบรายการผลคะแนนนี้ใช่หรือไม่?', async () => {
+                showLoader('กำลังลบ...');
+                await dbClient.from('exam_results').delete().eq('id', id);
+                hideLoader();
+                showToast('ลบผลคะแนนเรียบร้อยแล้ว', 'success');
+                loadResultsTable();
+            });
+        }
+
+        // ------------------ USER MANAGEMENT (ADMIN ONLY) ------------------
+        async function loadUsersList() {
+            showLoader('กำลังโหลดรายชื่อผู้ใช้...');
+            const { data } = await dbClient.from('app_users').select('*');
+            hideLoader();
+
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            data?.forEach(u => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-800">${u.username}</td>
+                        <td class="p-4 text-slate-600">${u.full_name}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
+                                ${u.role === 'admin' ? 'Admin' : 'User'}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right space-x-1">
+                            <button onclick="deleteUser('${u.id}')" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function openUserModal() {
+            document.getElementById('userForm').reset();
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        async function handleSaveUser(e) {
+            e.preventDefault();
+            showLoader('กำลังบันทึกผู้ใช้...');
+
+            const username = document.getElementById('userUsername').value;
+            const password = document.getElementById('userPassword').value;
+            const full_name = document.getElementById('userFullName').value;
+            const role = document.getElementById('userRole').value;
+
+            try {
+                const { error } = await dbClient.from('app_users').insert([{
+                    username, password, full_name, role
+                }]);
+
+                hideLoader();
+                if (error) throw error;
+
+                closeUserModal();
+                showToast('เพิ่มผู้ใช้งานเรียบร้อยแล้ว', 'success');
+                loadUsersList();
+
+            } catch (err) {
+                hideLoader();
+                showToast('เกิดข้อผิดพลาดในการบันทึกผู้ใช้', 'error');
+            }
+        }
+
+        function deleteUser(id) {
+            showConfirmDialog('ลบผู้ใช้งาน', 'คุณแน่ใจหรือไม่ที่จะลบผู้ใช้งานนี้?', async () => {
+                showLoader('กำลังลบ...');
+                await dbClient.from('app_users').delete().eq('id', id);
+                hideLoader();
+                showToast('ลบผู้ใช้เรียบร้อยแล้ว', 'success');
+                loadUsersList();
+            });
+        }
+
+        // ------------------ UTILS & UI HELPERS ------------------
+        function showLoader(text = 'กำลังประมวลผล...') {
+            document.getElementById('loaderText').innerText = text;
+            document.getElementById('globalLoader').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('globalLoader').classList.add('hidden');
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgColors = {
+                success: 'bg-emerald-600 text-white',
+                error: 'bg-red-600 text-white',
+                warning: 'bg-amber-500 text-white',
+                info: 'bg-slate-800 text-white'
+            };
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl text-sm font-medium flex items-center space-x-2 transition transform duration-300 pointer-events-auto ${bgColors[type]}`;
+            toast.innerHTML = `<span>${msg}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showConfirmDialog(title, message, onOk) {
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            const modal = document.getElementById('confirmModal');
+            modal.classList.remove('hidden');
+
+            const btnOk = document.getElementById('confirmBtnOk');
+            const btnCancel = document.getElementById('confirmBtnCancel');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                btnOk.removeEventListener('click', handleOk);
+                btnCancel.removeEventListener('click', handleCancel);
+            };
+
+            const handleOk = () => { cleanup(); onOk(); };
+            const handleCancel = () => { cleanup(); };
+
+            btnOk.addEventListener('click', handleOk);
+            btnCancel.addEventListener('click', handleCancel);
+        }
+
+        function capitalize(s) {
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+    </script>
+</body>
+</html>
