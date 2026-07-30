@@ -280,13 +280,40 @@
 								</div>
 								
 								<!-- ปุ่มที่แสดงหลังจากถ่ายภาพเสร็จ -->
-								<div class="flex gap-2 hidden" id="processControls">
-									<button onclick="retakeImage()" class="flex-1 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
-										<i data-lucide="refresh-ccw" class="w-4 h-4"></i> <span>ถ่ายใหม่</span>
-									</button>
-									<button onclick="processCapturedImage()" class="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
-										<i data-lucide="check-circle" class="w-5 h-5"></i> <span>ตรวจสอบคะแนน</span>
-									</button>
+								<div class="flex flex-col gap-3 hidden" id="processControls">
+									<!-- เครื่องมือปรับแต่งก่อนสแกน V2 -->
+									<div class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex flex-col space-y-3">
+										<div class="flex justify-between items-center">
+											<div class="text-xs text-indigo-700">
+												<span class="font-bold block">เครื่องมือช่วยเหลือ</span>
+												วาดจุด, ยางลบ หรือปรับขนาด
+											</div>
+											<div class="flex space-x-2">
+												<button id="btnToolPen" onclick="setDrawTool('pen')" class="p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm" title="ปากกาดำ">
+													<i data-lucide="pen-tool" class="w-4 h-4"></i>
+												</button>
+												<button id="btnToolEraser" onclick="setDrawTool('eraser')" class="p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm" title="ยางลบ">
+													<i data-lucide="eraser" class="w-4 h-4"></i>
+												</button>
+												<button onclick="clearDrawing()" class="p-2 bg-white text-red-500 border border-slate-200 hover:bg-red-50 rounded-lg transition shadow-sm" title="ล้างที่วาดทั้งหมด">
+													<i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+												</button>
+											</div>
+										</div>
+										<div class="flex items-center space-x-3">
+											<label class="text-xs text-indigo-700 font-medium whitespace-nowrap">ขนาดหัว:</label>
+											<input type="range" id="penSize" min="5" max="50" value="15" class="w-full h-1.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+										</div>
+									</div>
+
+									<div class="flex gap-2">
+										<button onclick="retakeImage()" class="flex-1 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
+											<i data-lucide="refresh-ccw" class="w-4 h-4"></i> <span>ถ่ายใหม่</span>
+										</button>
+										<button onclick="processCapturedImage()" class="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
+											<i data-lucide="cpu" class="w-5 h-5"></i> <span>ให้ AI ตรวจสอบ</span>
+										</button>
+									</div>
 								</div>
 							</div>
 
@@ -886,31 +913,33 @@
 			}
 		}
 
+		// นำตัวแปรนี้ไปวางไว้ด้านบนสุดของส่วนฟังก์ชันกล้อง
+		let offscreenCanvas = document.createElement('canvas');
+
 		function captureImage() {
 			const video = document.getElementById('webcamVideo');
 			const canvas = document.getElementById('captureCanvas');
 			const ctx = canvas.getContext('2d');
 			
-			// กำหนดขนาดแคนวาสให้เท่ากับวิดีโอ
 			canvas.width = video.videoWidth;
 			canvas.height = video.videoHeight;
-			
-			// วาดภาพจากวิดีโอลงแคนวาส
 			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 			
-			// ปิดวิดีโอ แสดงแคนวาส
+			// ---> [เพิ่มโค้ด 3 บรรทัดนี้] บันทึกภาพต้นฉบับเก็บไว้ให้ยางลบ <---
+			offscreenCanvas.width = canvas.width;
+			offscreenCanvas.height = canvas.height;
+			offscreenCanvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+			
 			video.classList.add('hidden');
 			canvas.classList.remove('hidden');
 			
-			// ปิดสตรีมกล้องเพื่อประหยัดแบตเตอรี่
 			if (localStream) {
 				localStream.getTracks().forEach(t => t.stop());
 			}
-
-			// สลับปุ่มควบคุม
 			document.getElementById('btnCapture').classList.add('hidden');
 			document.getElementById('cameraControls').classList.add('hidden');
 			document.getElementById('processControls').classList.remove('hidden');
+			lucide.createIcons(); // รีเฟรชไอคอน
 		}
 
 		function retakeImage() {
@@ -930,7 +959,6 @@
 		function handleFileUpload(e) {
 			const file = e.target.files[0];
 			if (!file) return;
-
 			const reader = new FileReader();
 			reader.onload = (event) => {
 				const img = new Image();
@@ -941,12 +969,17 @@
 					canvas.height = img.height;
 					ctx.drawImage(img, 0, 0);
 					
+					// ---> [เพิ่มโค้ด 3 บรรทัดนี้] บันทึกภาพต้นฉบับเก็บไว้ให้ยางลบ <---
+					offscreenCanvas.width = img.width;
+					offscreenCanvas.height = img.height;
+					offscreenCanvas.getContext('2d').drawImage(img, 0, 0);
+					
 					document.getElementById('webcamVideo').classList.add('hidden');
 					document.getElementById('scanPlaceholder').classList.add('hidden');
 					canvas.classList.remove('hidden');
-					
 					document.getElementById('cameraControls').classList.add('hidden');
 					document.getElementById('processControls').classList.remove('hidden');
+					lucide.createIcons(); // รีเฟรชไอคอน
 				};
 				img.src = event.target.result;
 			};
@@ -1059,22 +1092,85 @@
 				document.getElementById('scanStatusBadge').innerText = 'ตรวจสำเร็จ (โดย AI)';
 
 				currentScannedData = {
-					score,
+					score: 0,
 					total_score: totalQuestions,
 					answers: studentAnswers
 				};
 
+				renderInteractiveTable(); // เรียกใช้ฟังก์ชันสร้างตารางใหม่
+
 				document.getElementById('btnSaveResult').disabled = false;
-				
 				hideLoader();
-				showToast('AI ตรวจกระดาษคำตอบสำเร็จ', 'success');
+				showToast('ตรวจสำเร็จ คุณครูสามารถคลิกที่ปุ่มเพื่อแก้ไขคำตอบได้', 'success');
 
 			} catch (err) {
 				hideLoader();
 				console.error("Gemini Error:", err);
-				showToast('ไม่สามารถประมวลผลภาพได้ กรุณาลองถ่ายภาพใหม่อีกครั้ง', 'error');
+				showToast('ไม่สามารถประมวลผลภาพได้ กรุณาลองอีกครั้ง', 'error');
 			}
 		}
+		
+		// ------------------ ระบบตารางแก้ไขคำตอบ (Interactive Result Table) ------------------
+function renderInteractiveTable() {
+    let score = 0;
+    const listTbody = document.getElementById('scanAnswersList');
+    listTbody.innerHTML = '';
+    const options = ['ก', 'ข', 'ค', 'ง'];
+
+    currentExamKeys.forEach((key) => {
+        const qNum = key.question_number.toString();
+        const detectedOption = currentScannedData.answers[qNum];
+        const correctOption = key.correct_option;
+        const isCorrect = detectedOption === correctOption;
+        
+        if (isCorrect) score++;
+
+        // สร้างปุ่ม ก ข ค ง สำหรับแต่ละข้อ
+        let buttonsHtml = `<div class="flex space-x-1">`;
+        options.forEach(opt => {
+            const isSelected = detectedOption === opt;
+            let btnClass = 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'; // ค่าเริ่มต้น
+            
+            if (isSelected) {
+                // ถ้าเป็นข้อที่เลือก ให้แสดงสีเขียวถ้าถูก สีแดงถ้าผิด
+                btnClass = isCorrect 
+                    ? 'bg-emerald-500 text-white border-emerald-600 font-bold shadow-sm' 
+                    : 'bg-red-500 text-white border-red-600 font-bold shadow-sm';
+            }
+
+            buttonsHtml += `<button type="button" onclick="updateStudentAnswer('${qNum}', '${opt}')" class="px-2 py-1 text-xs border rounded-md transition ${btnClass}">${opt}</button>`;
+        });
+        
+        // เพิ่มปุ่ม "เว้นว่าง" (ลบคำตอบ)
+        const isNull = !detectedOption;
+        buttonsHtml += `<button type="button" onclick="updateStudentAnswer('${qNum}', null)" class="px-2 py-1 text-xs border rounded-md ml-2 transition ${isNull ? 'bg-slate-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-100'}">ว่าง</button></div>`;
+
+        listTbody.innerHTML += `
+            <tr class="border-b hover:bg-slate-50">
+                <td class="p-2 font-medium">ข้อ ${qNum}</td>
+                <td class="p-2">${buttonsHtml}</td>
+                <td class="p-2 text-slate-500 font-medium">${correctOption}</td>
+                <td class="p-2 font-bold ${isCorrect ? 'text-emerald-500' : 'text-red-500'}">${isCorrect ? '✔' : '✘'}</td>
+            </tr>
+        `;
+    });
+
+    // อัปเดตคะแนนรวม
+    currentScannedData.score = score;
+    document.getElementById('scanScoreDisplay').innerText = `${score} / ${currentScannedData.total_score}`;
+    
+    const badge = document.getElementById('scanStatusBadge');
+    badge.className = 'px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold';
+    badge.innerText = 'รอการบันทึก';
+}
+
+// ฟังก์ชันคลิกแก้ไขคำตอบรายข้อ
+function updateStudentAnswer(qNum, newAnswer) {
+    // อัปเดตค่าใน State
+    currentScannedData.answers[qNum] = newAnswer;
+    // สั่งวาดตารางใหม่เพื่อคำนวณคะแนนและเปลี่ยนสีปุ่ม
+    renderInteractiveTable(); 
+}
 
         function stopCamera() {
 			// 1. ปิดการทำงานของกล้อง
@@ -1572,6 +1668,168 @@ async function loadSystemSettings() {
     } catch (err) {
         console.error('ไม่สามารถโหลดการตั้งค่าระบบได้', err);
     }
+}
+
+// ------------------ เครื่องมือแต้มจุด (Drawing Tool) ------------------
+
+function toggleDrawingMode() {
+    isDrawingMode = !isDrawingMode;
+    const canvas = document.getElementById('captureCanvas');
+    const btnText = document.getElementById('penStatusText');
+    const btn = document.getElementById('btnTogglePen');
+
+    if (isDrawingMode) {
+        btnText.innerText = 'ปิดปากกา';
+        btn.classList.replace('bg-white', 'bg-indigo-600');
+        btn.classList.replace('text-indigo-600', 'text-white');
+        canvas.style.cursor = 'crosshair';
+        showToast('ใช้นิ้วแต้มจุดสีดำทับรอยที่จางได้เลย', 'info');
+    } else {
+        btnText.innerText = 'เปิดปากกา';
+        btn.classList.replace('bg-indigo-600', 'bg-white');
+        btn.classList.replace('text-white', 'text-indigo-600');
+        canvas.style.cursor = 'default';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('captureCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const startDraw = (e) => {
+        if (currentDrawTool === 'none') return;
+        e.preventDefault();
+        const coords = getCanvasCoordinates(e, canvas);
+        if (!coords) return;
+        
+        isDrawing = true;
+        lastX = coords.x;
+        lastY = coords.y;
+        draw(e); 
+    };
+
+    const stopDraw = () => {
+        isDrawing = false;
+    };
+
+    const draw = (e) => {
+        if (currentDrawTool === 'none' || !isDrawing) return;
+        e.preventDefault();
+        const coords = getCanvasCoordinates(e, canvas);
+        if (!coords) return;
+
+        const penSize = parseInt(document.getElementById('penSize').value);
+
+        ctx.lineWidth = penSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (currentDrawTool === 'pen') {
+            // โหมดปากกา: วาดเส้นสีดำ
+            ctx.strokeStyle = '#000000';
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+        } else if (currentDrawTool === 'eraser') {
+            // โหมดยางลบ: ดึงภาพจากหน้ากระดาษต้นฉบับมาแปะทับรอยดำ
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(coords.x, coords.y);
+            ctx.clip(); // ตีกรอบบริเวณที่จะลบตามขนาดหัวยางลบ
+            ctx.drawImage(offscreenCanvas, 0, 0); // คืนสภาพรูป
+            ctx.restore();
+        }
+
+        lastX = coords.x;
+        lastY = coords.y;
+    };
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseout', stopDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw);
+});
+
+// ------------------ เครื่องมือแต้มจุด และ ยางลบ (Drawing Tool V2) ------------------
+let currentDrawTool = 'none'; 
+let isDrawing = false;
+let isDrawingMode = false;
+let lastX = 0;
+let lastY = 0;
+
+function setDrawTool(tool) {
+    const canvas = document.getElementById('captureCanvas');
+    const btnPen = document.getElementById('btnToolPen');
+    const btnEraser = document.getElementById('btnToolEraser');
+    
+    // รีเซ็ตปุ่ม
+    btnPen.className = 'p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm';
+    btnEraser.className = 'p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm';
+    
+    // ถ้ากดปุ่มเดิมซ้ำ = ปิดการใช้งาน
+    if (currentDrawTool === tool) {
+        currentDrawTool = 'none';
+        canvas.style.cursor = 'default';
+        return;
+    }
+    
+    currentDrawTool = tool;
+    if (tool === 'pen') {
+        btnPen.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-sm';
+        canvas.style.cursor = 'crosshair';
+    } else if (tool === 'eraser') {
+        btnEraser.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-sm';
+        canvas.style.cursor = 'cell';
+    }
+}
+
+function clearDrawing() {
+    const canvas = document.getElementById('captureCanvas');
+    const ctx = canvas.getContext('2d');
+    // วาดภาพต้นฉบับกลับคืนมาทั้งหมด
+    ctx.drawImage(offscreenCanvas, 0, 0);
+    showToast('คืนค่ารูปภาพต้นฉบับแล้ว', 'success');
+}
+
+// ฟังก์ชันคณิตศาสตร์: คำนวณพิกัดให้ตรงเป๊ะกับหน้าจอ
+function getCanvasCoordinates(e, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const canvasAspect = canvas.width / canvas.height;
+    const rectAspect = rect.width / rect.height;
+
+    let renderedW, renderedH, offsetX = 0, offsetY = 0;
+
+    if (canvasAspect > rectAspect) {
+        renderedW = rect.width;
+        renderedH = rect.width / canvasAspect;
+        offsetY = (rect.height - renderedH) / 2;
+    } else {
+        renderedH = rect.height;
+        renderedW = rect.height * canvasAspect;
+        offsetX = (rect.width - renderedW) / 2;
+    }
+
+    const scaleX = canvas.width / renderedW;
+    const scaleY = canvas.height / renderedH;
+
+    let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+    // เช็คว่ากดออกนอกขอบรูปภาพหรือไม่
+    if (clientX < rect.left + offsetX || clientX > rect.right - offsetX ||
+        clientY < rect.top + offsetY || clientY > rect.bottom - offsetY) {
+        return null;
+    }
+
+    const x = (clientX - rect.left - offsetX) * scaleX;
+    const y = (clientY - rect.top - offsetY) * scaleY;
+
+    return { x, y };
 }
     </script>
 </body>
