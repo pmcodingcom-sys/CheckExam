@@ -124,6 +124,11 @@
                         <i data-lucide="file-text" class="w-5 h-5"></i>
                         <span>จัดการเฉลยข้อสอบ</span>
                     </button>
+					<!-- แทรกใน Sidebar Desktop (ประมาณบรรทัด 118 ภายใต้ปุ่ม จัดการเฉลยข้อสอบ) -->
+					<button onclick="switchTab('templates')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="templates">
+						<i data-lucide="printer" class="w-5 h-5"></i>
+						<span>พิมพ์กระดาษคำตอบ</span>
+					</button>
                     <button onclick="switchTab('results')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition" data-tab="results">
                         <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
                         <span>รายงานผลคะแนน</span>
@@ -237,7 +242,7 @@
 						<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
 							<div>
 								<h2 class="text-lg font-bold text-slate-900">ระบบตรวจกระดาษคำตอบ</h2>
-								<p class="text-xs text-slate-500">เลือกชุดข้อสอบ ถ่ายภาพกระดาษคำตอบ แล้วกดตรวจสอบ</p>
+								<p class="text-xs text-slate-500">เลือกชุดข้อสอบ ถ่ายภาพ หรืออัปโหลดรูป แล้วกดตรวจสอบ <span id="queueStatus" class="font-bold text-indigo-600 hidden"></span></p>
 							</div>
 							<select id="scanExamSelect" onchange="onScanExamChange()" class="w-full sm:w-64 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
 								<option value="">-- เลือกชุดข้อสอบ --</option>
@@ -270,7 +275,8 @@
 									</button>
 									<label id="btnUploadImage" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2 cursor-pointer">
 										<i data-lucide="upload" class="w-4 h-4"></i> <span>อัปโหลดรูป</span>
-										<input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" class="hidden">
+										<!-- เพิ่มคำว่า multiple เข้าไปที่ input -->
+										<input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileUpload(event)" class="hidden">
 									</label>
 									
 									<!-- ปุ่มที่แสดงตอนเปิดกล้องแล้ว -->
@@ -417,6 +423,47 @@
                         </div>
                     </div>
                 </section>
+				
+				<!-- 6. TEMPLATES VIEW (เพิ่มใหม่) -->
+                <section id="viewTemplates" class="hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-900">พิมพ์กระดาษคำตอบ (OMR Template)</h2>
+                    </div>
+
+                    <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm max-w-3xl mx-auto space-y-6">
+                        <div class="text-center space-y-2 mb-6">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+                                <i data-lucide="printer" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-800">สร้างกระดาษคำตอบมาตรฐาน</h3>
+                            <p class="text-xs text-slate-500">กระดาษคำตอบนี้จะมีจุดอ้างอิง 4 มุม เพื่อให้ AI สแกนได้แม่นยำ 100%</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <div>
+                                <label class="text-sm font-semibold text-slate-700 block mb-2">จำนวนข้อสอบ</label>
+                                <select id="templateQuestionCount" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="10">10 ข้อ</option>
+                                    <option value="20" selected>20 ข้อ</option>
+                                    <option value="30">30 ข้อ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold text-slate-700 block mb-2">จำนวนหลักรหัสประจำตัวนักเรียน</label>
+                                <select id="templateIdLength" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="3">3 หลัก</option>
+                                    <option value="4">4 หลัก</option>
+                                    <option value="5" selected>5 หลัก</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="printTemplate()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-lg">
+                            <i data-lucide="printer" class="w-5 h-5"></i> 
+                            <span>คลิกเพื่อสั่งพิมพ์ (A4)</span>
+                        </button>
+                    </div>
+                </section>
 
                 <!-- 6. USER MANAGEMENT VIEW (Admin Only) -->
                 <section id="viewUsers" class="hidden space-y-6">
@@ -469,6 +516,12 @@
                 <i data-lucide="file-text" class="w-5 h-5"></i>
                 <span class="text-[10px] mt-1 font-medium">เฉลย</span>
             </button>
+			<!-- แทรกใน Mobile Bottom Nav (ภายใต้ปุ่ม สแกน หรือ เฉลย) -->
+			<button onclick="switchTab('templates')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="templates">
+				<i data-lucide="printer" class="w-5 h-5"></i>
+				<span class="text-[10px] mt-1 font-medium">พิมพ์</span>
+			</button>
+
             <button onclick="switchTab('results')" class="mobile-nav-btn flex flex-col items-center text-slate-500 hover:text-indigo-600 p-1" data-tab="results">
                 <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
                 <span class="text-[10px] mt-1 font-medium">รายงาน</span>
@@ -631,6 +684,11 @@
         let accuracyChart = null;
         let currentScannedData = null;
         let currentExamKeys = [];
+        let currentExamId = null;
+        
+        // เพิ่ม 2 ตัวแปรนี้สำหรับระบบคิวรูปภาพ
+        let imageQueue = [];
+        let currentQueueIndex = 0;
 
         // DOM Load Initializer
         document.addEventListener('DOMContentLoaded', () => {
@@ -746,7 +804,7 @@
         // ------------------ ROUTING & NAVIGATION ------------------
         function switchTab(tabId) {
             activeTab = tabId;
-            const views = ['Landing', 'Dashboard', 'Scan', 'Exams', 'Results', 'Users'];
+            const views = ['Landing', 'Dashboard', 'Scan', 'Exams', 'Results', 'Users', 'Templates'];
             views.forEach(v => {
                 const el = document.getElementById(`view${v}`);
                 if (el) el.classList.add('hidden');
@@ -943,48 +1001,78 @@
 		}
 
 		function retakeImage() {
-			document.getElementById('processControls').classList.add('hidden');
-			document.getElementById('cameraControls').classList.remove('hidden');
-			
-			// รีเซ็ตค่า UI
-			document.getElementById('scanScoreDisplay').innerText = '0 / 0';
-			document.getElementById('scanStatusBadge').innerText = 'รอตรวจสอบ';
-			document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold';
-			document.getElementById('scanAnswersList').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>';
-			document.getElementById('btnSaveResult').disabled = true;
+            document.getElementById('processControls').classList.add('hidden');
+            document.getElementById('cameraControls').classList.remove('hidden');
+            
+            // รีเซ็ตค่า UI
+            document.getElementById('scanScoreDisplay').innerText = '0 / 0';
+            document.getElementById('scanStatusBadge').innerText = 'รอตรวจสอบ';
+            document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold';
+            document.getElementById('scanAnswersList').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>';
+            
+            // เหลือแค่การปิดปุ่ม Save หลักปุ่มเดียว
+            document.getElementById('btnSaveResult').disabled = true;
 
-			startCamera();
-		}
+            // สั่งหยุดกล้อง เพื่อให้กลับไปหน้าเลือกอัปโหลด/กล้อง
+            stopCamera();
+        }
 
 		function handleFileUpload(e) {
-			const file = e.target.files[0];
-			if (!file) return;
-			const reader = new FileReader();
-			reader.onload = (event) => {
-				const img = new Image();
-				img.onload = () => {
-					const canvas = document.getElementById('captureCanvas');
-					const ctx = canvas.getContext('2d');
-					canvas.width = img.width;
-					canvas.height = img.height;
-					ctx.drawImage(img, 0, 0);
-					
-					// ---> [เพิ่มโค้ด 3 บรรทัดนี้] บันทึกภาพต้นฉบับเก็บไว้ให้ยางลบ <---
-					offscreenCanvas.width = img.width;
-					offscreenCanvas.height = img.height;
-					offscreenCanvas.getContext('2d').drawImage(img, 0, 0);
-					
-					document.getElementById('webcamVideo').classList.add('hidden');
-					document.getElementById('scanPlaceholder').classList.add('hidden');
-					canvas.classList.remove('hidden');
-					document.getElementById('cameraControls').classList.add('hidden');
-					document.getElementById('processControls').classList.remove('hidden');
-					lucide.createIcons(); // รีเฟรชไอคอน
-				};
-				img.src = event.target.result;
-			};
-			reader.readAsDataURL(file);
-		}
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            // เก็บไฟล์ทั้งหมดลงในคิว และเริ่มที่รูปแรก (Index 0)
+            imageQueue = Array.from(files);
+            currentQueueIndex = 0;
+            
+            loadQueueImage();
+        }
+
+        // ฟังก์ชันสำหรับโหลดรูปตามคิว
+        function loadQueueImage() {
+            // ถ้าตรวจครบทุกรูปในคิวแล้ว
+            if (currentQueueIndex >= imageQueue.length) {
+                imageQueue = [];
+                currentQueueIndex = 0;
+                document.getElementById('queueStatus').classList.add('hidden');
+                document.getElementById('fileInput').value = ''; // เคลียร์ไฟล์ที่เลือก
+                showToast('🎉 ตรวจและบันทึกรูปภาพในคิวเสร็จสิ้นทั้งหมดแล้ว!', 'success');
+                stopCamera(); // กลับไปหน้าเริ่มต้น
+                return;
+            }
+
+            const file = imageQueue[currentQueueIndex];
+            
+            // แสดงข้อความบอกสถานะคิว
+            const queueStatus = document.getElementById('queueStatus');
+            queueStatus.innerText = `(กำลังตรวจไฟล์ที่ ${currentQueueIndex + 1} จาก ${imageQueue.length})`;
+            queueStatus.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.getElementById('captureCanvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    offscreenCanvas.width = img.width;
+                    offscreenCanvas.height = img.height;
+                    offscreenCanvas.getContext('2d').drawImage(img, 0, 0);
+                    
+                    document.getElementById('webcamVideo').classList.add('hidden');
+                    document.getElementById('scanPlaceholder').classList.add('hidden');
+                    canvas.classList.remove('hidden');
+                    document.getElementById('cameraControls').classList.add('hidden');
+                    document.getElementById('processControls').classList.remove('hidden');
+                    lucide.createIcons();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
 
 		// ------------------ ระบบประมวลผลกระดาษคำตอบด้วย AI (Gemini 1.5 Flash) ------------------
 		async function processCapturedImage() {
@@ -1265,6 +1353,12 @@ function updateStudentAnswer(qNum, newAnswer) {
             const studentId = document.getElementById('scanStudentId').value.trim();
             const studentName = document.getElementById('scanStudentName').value.trim();
 
+            // 1. ดักจับกรณีที่ชุดข้อสอบหลุดหายไป
+            if (!examId) {
+                showToast('กรุณาเลือกวิชา/ชุดข้อสอบใหม่อีกครั้ง', 'warning');
+                return;
+            }
+
             if (!studentId || !studentName) {
                 showToast('กรุณากรอกรหัสและชื่อนักเรียน', 'warning');
                 return;
@@ -1283,19 +1377,43 @@ function updateStudentAnswer(qNum, newAnswer) {
                 }]);
 
                 hideLoader();
-                if (error) throw error;
+                if (error) throw error; // โยน Error ไปให้ Catch จัดการ
 
-                showToast('บันทึกผลการตรวจข้อสอบเรียบร้อยแล้ว', 'success');
+                showToast(`บันทึกผลของ ${studentName} เรียบร้อยแล้ว`, 'success');
                 document.getElementById('btnSaveResult').disabled = true;
                 document.getElementById('scanStudentId').value = '';
                 document.getElementById('scanStudentName').value = '';
 
+                // --- [ส่วนที่เพิ่มใหม่] รีเซ็ตหน้าจอและเรียกคิวรูปภาพถัดไป ---
+                currentScannedData = null;
+                document.getElementById('scanAnswersList').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>';
+                document.getElementById('scanScoreDisplay').innerText = '0 / 0';
+                document.getElementById('scanStatusBadge').innerText = 'รอตรวจสอบ';
+                document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold';
+                
+                document.getElementById('processControls').classList.add('hidden');
+                document.getElementById('captureCanvas').classList.add('hidden');
+
+                // ตรวจสอบว่ามีคิวรูปภาพเหลืออยู่ไหม
+                if (typeof imageQueue !== 'undefined' && imageQueue.length > 0) {
+                    currentQueueIndex++; // ขยับไปรูปลำดับต่อไป
+                    loadQueueImage();    // โหลดรูปลงจอให้ตรวจต่อทันที
+                } else {
+                    stopCamera(); // ถ้าคิวหมดแล้ว หรือไม่ได้อัปโหลดหลายรูป ให้กลับไปหน้าเริ่มต้น
+                }
+                // ----------------------------------------------------
+
             } catch (err) {
                 hideLoader();
+                console.error("Supabase Error:", err);
+                
+                // 2. เด้ง Alert บอกสาเหตุแบบเจาะจงไปเลย
+                alert('เซฟไม่ผ่าน! สาเหตุ: ' + (err.message || err.details || JSON.stringify(err)));
+                
                 showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
             }
         }
-
+		
         // ------------------ EXAM MANAGEMENT ------------------
         async function loadExamsList() {
             showLoader('กำลังโหลดรายการชุดข้อสอบ...');
@@ -1826,6 +1944,132 @@ function getCanvasCoordinates(e, canvas) {
 
     return { x, y };
 }
+
+// ------------------ PRINT TEMPLATE (อัปเดตแก้ปัญหาหน้าต่างปริ้นไม่เด้ง) ------------------
+        function printTemplate() {
+            const qCount = parseInt(document.getElementById('templateQuestionCount').value);
+            const idLength = parseInt(document.getElementById('templateIdLength').value);
+            
+            // สร้างหน้าต่างใหม่สำหรับการพิมพ์
+            const printWindow = window.open('', '_blank');
+            
+            // สร้าง HTML สำหรับการกากบาทรหัสนักเรียน (0-9 แนวนอน, หลักแนวตั้ง)
+            let idGridHtml = `<div style="display:flex; gap:10px;">`;
+            for(let i=0; i<idLength; i++) {
+                idGridHtml += `<div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:25px; height:25px; border:1px solid #000; text-align:center; font-size:12px; line-height:23px; margin-bottom:5px;"></div>`;
+                for(let j=0; j<=9; j++) {
+                    idGridHtml += `<div style="width:20px; height:20px; border:1px solid #000; text-align:center; font-size:10px; line-height:20px; color:#666;">${j}</div>`;
+                }
+                idGridHtml += `</div>`;
+            }
+            idGridHtml += `</div>`;
+
+            // สร้าง HTML สำหรับข้อสอบ
+            let qGridHtml = `<div style="display:flex; gap:40px;">`;
+            const cols = qCount > 15 ? 2 : 1;
+            const itemsPerCol = Math.ceil(qCount / cols);
+            
+            for(let c=0; c<cols; c++) {
+                qGridHtml += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+                // หัวตาราง ก ข ค ง
+                qGridHtml += `<div style="display:flex; gap:10px; padding-left:35px; font-weight:bold;">
+                    <div style="width:20px; text-align:center;">ก</div>
+                    <div style="width:20px; text-align:center;">ข</div>
+                    <div style="width:20px; text-align:center;">ค</div>
+                    <div style="width:20px; text-align:center;">ง</div>
+                </div>`;
+                
+                for(let r=0; r<itemsPerCol; r++) {
+                    const qNum = (c * itemsPerCol) + r + 1;
+                    if (qNum > qCount) break;
+                    
+                    qGridHtml += `<div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:25px; text-align:right; font-weight:bold;">${qNum}.</div>
+                        <div style="width:20px; height:20px; border:1px solid #000;"></div>
+                        <div style="width:20px; height:20px; border:1px solid #000;"></div>
+                        <div style="width:20px; height:20px; border:1px solid #000;"></div>
+                        <div style="width:20px; height:20px; border:1px solid #000;"></div>
+                    </div>`;
+                }
+                qGridHtml += `</div>`;
+            }
+            qGridHtml += `</div>`;
+
+            // ประกอบร่าง HTML เข้าด้วยกัน
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Print OMR Template</title>
+                <style>
+                    @page { size: A4; margin: 0; }
+                    body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 20mm; box-sizing: border-box; }
+                    .page-container { position: relative; width: 100%; height: 100%; min-height: 250mm; }
+                    .marker { 
+						position: absolute; 
+						width: 40px; 
+						height: 40px; 
+						background-color: black !important; 
+						-webkit-print-color-adjust: exact; 
+						print-color-adjust: exact; 
+					}
+                    .tl { top: 0; left: 0; }
+                    .tr { top: 0; right: 0; }
+                    .bl { bottom: 0; left: 0; }
+                    .br { bottom: 0; right: 0; }
+                    .content { padding: 50px; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .info-row { display: flex; gap: 20px; margin-bottom: 20px; font-size: 16px; font-weight: bold; }
+                    .line { border-bottom: 1px dotted #000; flex-grow: 1; }
+                    .instruction { font-size: 14px; color: #333; margin-bottom: 30px; font-weight: bold; text-decoration: underline; }
+                </style>
+            </head>
+            <body>
+                <div class="page-container">
+                    <div class="marker tl"></div><div class="marker tr"></div>
+                    <div class="marker bl"></div><div class="marker br"></div>
+                    
+                    <div class="content">
+                        <div class="header">
+                            <h2>กระดาษคำตอบ</h2>
+                            <p style="font-size: 18px;">วิชา....................................................................... ชั้น....................</p>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span>ชื่อ - นามสกุล</span><div class="line"></div>
+                        </div>
+
+                        <div class="instruction">
+                            คำชี้แจง: ให้นักเรียนเขียนรหัสประจำตัวและทำเครื่องหมายกากบาท (X) ลงในช่องสี่เหลี่ยมให้ชัดเจน
+                        </div>
+                        
+                        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                            <div>
+                                <h4 style="margin-bottom:10px;">ส่วนที่ 1: รหัสประจำตัวนักเรียน</h4>
+                                ${idGridHtml}
+                            </div>
+                            
+                            <div style="border-left: 2px solid #000; padding-left: 40px;">
+                                <h4 style="margin-bottom:10px;">ส่วนที่ 2: กากบาทคำตอบ (${qCount} ข้อ)</h4>
+                                ${qGridHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    // หน่วงเวลา 0.5 วินาที เพื่อให้เบราว์เซอร์จัดหน้าให้เสร็จก่อนเรียกคำสั่งพิมพ์
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                <` + `/script>
+            </body>
+            </html>`;
+
+            printWindow.document.open();
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
     </script>
 </body>
 </html>
