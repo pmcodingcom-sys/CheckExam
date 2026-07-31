@@ -364,9 +364,17 @@
 									</div>
 								</div>
 
-								<button id="btnSaveResult" onclick="saveScanResult()" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold rounded-xl transition shadow-md flex items-center justify-center space-x-2">
-									<i data-lucide="save" class="w-4 h-4"></i> <span>บันทึกผลคะแนน</span>
-								</button>
+								<!-- ปุ่มบันทึกผล (อัปเดตใหม่) -->
+							    <div class="mt-6 flex gap-3">
+							        <button id="btnSaveResult" onclick="saveScanResult(false)" disabled class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition flex items-center justify-center space-x-2">
+							            <i data-lucide="save" class="w-5 h-5"></i>
+							            <span>บันทึกเฉยๆ</span>
+							        </button>
+							        <button id="btnSaveAndNext" onclick="saveScanResult(true)" disabled class="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center space-x-2 shadow-md">
+							            <i data-lucide="scan-line" class="w-5 h-5"></i>
+							            <span>บันทึก & สแกนแผ่นต่อไป ⚡</span>
+							        </button>
+							    </div>
 							</div>
 						</div>
 					</div>
@@ -1259,41 +1267,117 @@ function updateStudentAnswer(qNum, newAnswer) {
             document.getElementById('btnSaveResult').disabled = false;
         }
 
-        async function saveScanResult() {
-            const examId = document.getElementById('scanExamSelect').value;
-            const studentId = document.getElementById('scanStudentId').value.trim();
-            const studentName = document.getElementById('scanStudentName').value.trim();
-
-            if (!studentId || !studentName) {
-                showToast('กรุณากรอกรหัสและชื่อนักเรียน', 'warning');
-                return;
-            }
-
-            showLoader('กำลังบันทึกข้อมูลคะแนน...');
-            try {
-                const { error } = await dbClient.from('exam_results').insert([{
-                    exam_id: examId,
-                    user_id: currentUser.id,
-                    student_id: studentId,
-                    student_name: studentName,
-                    score: currentScannedData.score,
-                    total_score: currentScannedData.total_score,
-                    student_answers: currentScannedData.answers
-                }]);
-
-                hideLoader();
-                if (error) throw error;
-
-                showToast('บันทึกผลการตรวจข้อสอบเรียบร้อยแล้ว', 'success');
-                document.getElementById('btnSaveResult').disabled = true;
-                document.getElementById('scanStudentId').value = '';
-                document.getElementById('scanStudentName').value = '';
-
-            } catch (err) {
-                hideLoader();
-                showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
-            }
-        }
+        // ฟังก์ชันบันทึกผลการสแกน (รองรับโหมดสแกนต่อเนื่อง)
+		async function saveScanResult(isContinuous = false) {
+		    // 1. ตรวจสอบความพร้อมของข้อมูลก่อนบันทึก
+		    if (!currentScannedData) {
+		        showToast('ไม่มีข้อมูลการสแกน กรุณาสแกนกระดาษคำตอบก่อน', 'warning');
+		        return;
+		    }
+		
+		    // สมมติว่า ID ของช่องกรอกรหัสและชื่อคือ scanStudentId และ scanStudentName (ปรับแก้ได้ตามโค้ดจริงของคุณครูครับ)
+		    const studentIdInput = document.getElementById('scanStudentId');
+		    const studentNameInput = document.getElementById('scanStudentName');
+		    const studentId = studentIdInput ? studentIdInput.value.trim() : '';
+		    const studentName = studentNameInput ? studentNameInput.value.trim() : '';
+		
+		    if (!studentId) {
+		        showToast('กรุณาระบุรหัสนักเรียนก่อนบันทึก', 'warning');
+		        if (studentIdInput) studentIdInput.focus();
+		        return;
+		    }
+		
+		    if (!currentExamId) {
+		        showToast('ไม่พบข้อมูลชุดข้อสอบ กรุณาเลือกวิชา/ชุดข้อสอบก่อน', 'error');
+		        return;
+		    }
+		
+		    // 2. จัดการหน้าตาปุ่มให้อยู่ในสถานะ "กำลังโหลด"
+		    const btnSave = document.getElementById('btnSaveResult');
+		    const btnSaveNext = document.getElementById('btnSaveAndNext');
+		    const originalSaveText = btnSave.innerHTML;
+		    const originalSaveNextText = btnSaveNext.innerHTML;
+		    
+		    btnSave.disabled = true;
+		    btnSaveNext.disabled = true;
+		    
+		    if (isContinuous) {
+		        btnSaveNext.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>กำลังบันทึก...</span>';
+		    } else {
+		        btnSave.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>กำลังบันทึก...</span>';
+		    }
+		    lucide.createIcons();
+		
+		    try {
+		        // 3. ส่งข้อมูลบันทึกลงฐานข้อมูล Supabase
+		        // หมายเหตุ: เปลี่ยนชื่อตาราง 'exam_results' ให้ตรงกับตารางใน Supabase ของคุณครูนะครับ
+		        const { data, error } = await dbClient
+		            .from('exam_results')
+		            .insert([
+		                {
+		                    exam_id: currentExamId,       // รหัสวิชา/ชุดข้อสอบ
+		                    student_id: studentId,        // รหัสนักเรียน
+		                    student_name: studentName,    // ชื่อนักเรียน
+		                    score: currentScannedData.score,                  // คะแนนที่ได้
+		                    total_score: currentScannedData.total_score,      // คะแนนเต็ม
+		                    answers_data: currentScannedData.answers,         // JSON บันทึกว่าข้อไหนตอบอะไร (เอาไว้วิเคราะห์ทีหลัง)
+		                    graded_by: currentUser.id     // รหัสคุณครูที่ตรวจ
+		                }
+		            ]);
+		
+		        if (error) throw error;
+		
+		        showToast(`บันทึกคะแนนของ ${studentId} เรียบร้อยแล้ว`, 'success');
+		
+		        // 4. จัดการหน้าจอหลังบันทึกสำเร็จ
+		        if (isContinuous) {
+		            // โหมดสแกนต่อเนื่อง (⚡ บันทึก & สแกนแผ่นต่อไป)
+		            
+		            // เคลียร์ข้อมูลเก่า
+		            currentScannedData = null;
+		            if (studentIdInput) studentIdInput.value = '';
+		            if (studentNameInput) studentNameInput.value = '';
+		            document.getElementById('scanAnswersList').innerHTML = '';
+		            document.getElementById('scanScoreDisplay').innerText = '- / -';
+		            document.getElementById('scanStatusBadge').innerText = 'รอสแกน';
+		            
+		            // ปิดตารางผลลัพธ์และปุ่มเครื่องมือ
+		            document.getElementById('processControls').classList.add('hidden');
+		            document.getElementById('captureCanvas').classList.add('hidden');
+		            
+		            // คืนค่าปุ่มให้กดได้อีกรอบ
+		            btnSave.disabled = false;
+		            btnSaveNext.disabled = false;
+		            btnSave.innerHTML = originalSaveText;
+		            btnSaveNext.innerHTML = originalSaveNextText;
+		
+		            // เรียกกล้องขึ้นมาใหม่ทันที
+		            startCamera(); 
+		            
+		        } else {
+		            // โหมดบันทึกปกติ (บันทึกเฉยๆ)
+		            
+		            // ปิดปุ่ม ป้องกันการกดเบิ้ล
+		            document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold';
+		            document.getElementById('scanStatusBadge').innerText = 'บันทึกแล้ว';
+		            btnSave.innerHTML = originalSaveText;
+		            btnSaveNext.innerHTML = originalSaveNextText;
+		            // คงสถานะ disabled ไว้จนกว่าจะเปลี่ยนรูปใหม่
+		        }
+		
+		    } catch (error) {
+		        console.error('Error saving result:', error);
+		        showToast('เกิดข้อผิดพลาดในการบันทึก: ' + error.message, 'error');
+		        
+		        // ถ้า error คืนค่าปุ่มให้กลับมากดใหม่ได้
+		        btnSave.disabled = false;
+		        btnSaveNext.disabled = false;
+		        btnSave.innerHTML = originalSaveText;
+		        btnSaveNext.innerHTML = originalSaveNextText;
+		    } finally {
+		        lucide.createIcons(); // รีเฟรชไอคอน
+		    }
+		}
 
         // ------------------ EXAM MANAGEMENT ------------------
         async function loadExamsList() {
