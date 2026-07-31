@@ -278,79 +278,15 @@
 										<i data-lucide="aperture" class="w-5 h-5"></i> <span>ถ่ายภาพ</span>
 									</button>
 								</div>
-
-								<!-- กล่องอัปโหลดแบบ Batch (หลายไฟล์) -->
-				                <div class="mt-4 p-4 border-2 border-dashed border-indigo-200 bg-indigo-50 rounded-xl text-center">
-				                    <label class="block mb-2 text-sm font-bold text-indigo-700">อัปโหลดภาพกระดาษคำตอบแบบกลุ่ม (Batch)</label>
-				                    <p class="text-xs text-slate-500 mb-3">เลือกรูปภาพได้หลายไฟล์พร้อมกัน (สูงสุด 30-40 แผ่น)</p>
-				                    <input type="file" id="batchFileInput" multiple accept="image/*" onchange="handleBatchUpload(event)" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-				                </div>
-				
-				                <!-- พื้นที่แสดงผลตาราง Batch -->
-				                <div id="batchResultContainer" class="hidden mt-6 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-				                    <h3 class="font-bold text-lg mb-4 text-indigo-700 flex justify-between items-center">
-				                        <span>ผลการสแกนแบบกลุ่ม <span id="batchProgressText" class="text-sm font-medium text-slate-500"></span></span>
-				                    </h3>
-				                    <div class="overflow-x-auto">
-				                        <table class="w-full text-sm text-left text-slate-600">
-				                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
-				                                <tr>
-				                                    <th class="px-3 py-3 rounded-tl-lg text-center">รูป</th>
-				                                    <th class="px-3 py-3">รหัสนักเรียน</th>
-				                                    <th class="px-3 py-3 w-1/3">ชื่อ-นามสกุล</th>
-				                                    <th class="px-3 py-3 text-center">คะแนน</th>
-				                                    <th class="px-3 py-3 text-center rounded-tr-lg">สถานะ</th>
-				                                </tr>
-				                            </thead>
-				                            <tbody id="batchResultTableBody">
-				                                <!-- แถวข้อมูลรายคนจะแสดงที่นี่ -->
-				                            </tbody>
-				                        </table>
-				                    </div>
-				                    
-				                    <div class="mt-6 flex justify-end">
-				                        <button id="btnSaveBatch" onclick="saveAllBatchResults()" disabled class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition flex items-center space-x-2 disabled:bg-slate-400 disabled:cursor-not-allowed">
-				                            <i data-lucide="saveAll" class="w-5 h-5"></i>
-				                            <span>บันทึกข้อมูลทั้งห้อง</span>
-				                        </button>
-				                    </div>
-				                </div>
 								
 								<!-- ปุ่มที่แสดงหลังจากถ่ายภาพเสร็จ -->
-								<div class="flex flex-col gap-3 hidden" id="processControls">
-									<!-- เครื่องมือปรับแต่งก่อนสแกน V2 -->
-									<div class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex flex-col space-y-3">
-										<div class="flex justify-between items-center">
-											<div class="text-xs text-indigo-700">
-												<span class="font-bold block">เครื่องมือช่วยเหลือ</span>
-												วาดจุด, ยางลบ หรือปรับขนาด
-											</div>
-											<div class="flex space-x-2">
-												<button id="btnToolPen" onclick="setDrawTool('pen')" class="p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm" title="ปากกาดำ">
-													<i data-lucide="pen-tool" class="w-4 h-4"></i>
-												</button>
-												<button id="btnToolEraser" onclick="setDrawTool('eraser')" class="p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm" title="ยางลบ">
-													<i data-lucide="eraser" class="w-4 h-4"></i>
-												</button>
-												<button onclick="clearDrawing()" class="p-2 bg-white text-red-500 border border-slate-200 hover:bg-red-50 rounded-lg transition shadow-sm" title="ล้างที่วาดทั้งหมด">
-													<i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-												</button>
-											</div>
-										</div>
-										<div class="flex items-center space-x-3">
-											<label class="text-xs text-indigo-700 font-medium whitespace-nowrap">ขนาดหัว:</label>
-											<input type="range" id="penSize" min="5" max="50" value="15" class="w-full h-1.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-										</div>
-									</div>
-
-									<div class="flex gap-2">
-										<button onclick="retakeImage()" class="flex-1 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
-											<i data-lucide="refresh-ccw" class="w-4 h-4"></i> <span>ถ่ายใหม่</span>
-										</button>
-										<button onclick="processCapturedImage()" class="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
-											<i data-lucide="cpu" class="w-5 h-5"></i> <span>ให้ AI ตรวจสอบ</span>
-										</button>
-									</div>
+								<div class="flex gap-2 hidden" id="processControls">
+									<button onclick="retakeImage()" class="flex-1 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2">
+										<i data-lucide="refresh-ccw" class="w-4 h-4"></i> <span>ถ่ายใหม่</span>
+									</button>
+									<button onclick="processCapturedImage()" class="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center space-x-2">
+										<i data-lucide="check-circle" class="w-5 h-5"></i> <span>ตรวจสอบคะแนน</span>
+									</button>
 								</div>
 							</div>
 
@@ -401,17 +337,9 @@
 									</div>
 								</div>
 
-								<!-- ปุ่มบันทึกผล (อัปเดตใหม่) -->
-							    <div class="mt-6 flex gap-3">
-							        <button id="btnSaveResult" onclick="saveScanResult(false)" disabled class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition flex items-center justify-center space-x-2">
-							            <i data-lucide="save" class="w-5 h-5"></i>
-							            <span>บันทึกเฉยๆ</span>
-							        </button>
-							        <button id="btnSaveAndNext" onclick="saveScanResult(true)" disabled class="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center space-x-2 shadow-md">
-							            <i data-lucide="scan-line" class="w-5 h-5"></i>
-							            <span>บันทึก & สแกนแผ่นต่อไป ⚡</span>
-							        </button>
-							    </div>
+								<button id="btnSaveResult" onclick="saveScanResult()" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+									<i data-lucide="save" class="w-4 h-4"></i> <span>บันทึกผลคะแนน</span>
+								</button>
 							</div>
 						</div>
 					</div>
@@ -958,33 +886,31 @@
 			}
 		}
 
-		// นำตัวแปรนี้ไปวางไว้ด้านบนสุดของส่วนฟังก์ชันกล้อง
-		let offscreenCanvas = document.createElement('canvas');
-
 		function captureImage() {
 			const video = document.getElementById('webcamVideo');
 			const canvas = document.getElementById('captureCanvas');
 			const ctx = canvas.getContext('2d');
 			
+			// กำหนดขนาดแคนวาสให้เท่ากับวิดีโอ
 			canvas.width = video.videoWidth;
 			canvas.height = video.videoHeight;
+			
+			// วาดภาพจากวิดีโอลงแคนวาส
 			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 			
-			// ---> [เพิ่มโค้ด 3 บรรทัดนี้] บันทึกภาพต้นฉบับเก็บไว้ให้ยางลบ <---
-			offscreenCanvas.width = canvas.width;
-			offscreenCanvas.height = canvas.height;
-			offscreenCanvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-			
+			// ปิดวิดีโอ แสดงแคนวาส
 			video.classList.add('hidden');
 			canvas.classList.remove('hidden');
 			
+			// ปิดสตรีมกล้องเพื่อประหยัดแบตเตอรี่
 			if (localStream) {
 				localStream.getTracks().forEach(t => t.stop());
 			}
+
+			// สลับปุ่มควบคุม
 			document.getElementById('btnCapture').classList.add('hidden');
 			document.getElementById('cameraControls').classList.add('hidden');
 			document.getElementById('processControls').classList.remove('hidden');
-			lucide.createIcons(); // รีเฟรชไอคอน
 		}
 
 		function retakeImage() {
@@ -1004,6 +930,7 @@
 		function handleFileUpload(e) {
 			const file = e.target.files[0];
 			if (!file) return;
+
 			const reader = new FileReader();
 			reader.onload = (event) => {
 				const img = new Image();
@@ -1014,17 +941,12 @@
 					canvas.height = img.height;
 					ctx.drawImage(img, 0, 0);
 					
-					// ---> [เพิ่มโค้ด 3 บรรทัดนี้] บันทึกภาพต้นฉบับเก็บไว้ให้ยางลบ <---
-					offscreenCanvas.width = img.width;
-					offscreenCanvas.height = img.height;
-					offscreenCanvas.getContext('2d').drawImage(img, 0, 0);
-					
 					document.getElementById('webcamVideo').classList.add('hidden');
 					document.getElementById('scanPlaceholder').classList.add('hidden');
 					canvas.classList.remove('hidden');
+					
 					document.getElementById('cameraControls').classList.add('hidden');
 					document.getElementById('processControls').classList.remove('hidden');
-					lucide.createIcons(); // รีเฟรชไอคอน
 				};
 				img.src = event.target.result;
 			};
@@ -1060,25 +982,25 @@
             layoutDescription = "ตารางแบ่งเป็น 2 ฝั่ง ซ้ายและขวา ฝั่งซ้ายคือข้อ 1-5 เรียงจากบนลงล่าง ฝั่งขวาคือข้อ 6-10 เรียงจากบนลงล่าง";
         }
         
-        // 2. สร้าง Prompt สั่งงาน Gemini แบบบังคับความแม่นยำ
+        // 2. สร้าง Prompt สั่งงาน Gemini แบบเจาะจงสำหรับ "เด็กประถม" และจัดการ "รอยลบ"
         const promptText = `
-        คุณคือ AI ตรวจกระดาษคำตอบแบบปรนัยที่ต้องมีความแม่นยำ 100% 
-        ภาพที่แนบมาคือกระดาษคำตอบที่มีจำนวน ${totalQuestions} ข้อ
+        คุณคือ AI ผู้เชี่ยวชาญการตรวจกระดาษคำตอบ ที่ต้องมีความแม่นยำ 100% 
+        ภาพที่แนบมาคือกระดาษคำตอบของ "เด็กนักเรียนชั้นประถม" ซึ่งมีจำนวน ${totalQuestions} ข้อ
         
         โครงสร้างของตารางในภาพ:
         - ${layoutDescription}
         - คอลัมน์ตัวเลือกในแต่ละฝั่ง เรียงตามลำดับจากซ้ายไปขวาคือ "ก", "ข", "ค", "ง"
         
-        ขั้นตอนการทำงาน (บังคับทำตามอย่างเคร่งครัด):
-        1. ให้หาตำแหน่งของ "ตัวเลขข้อ" พิมพ์กำกับไว้ให้เจอชัดเจนก่อน เพื่อป้องกันการสลับข้อหรือข้ามบรรทัด
-        2. ไล่ดูไปตามแนวขนานของแถวนั้นๆ ว่ามีรอยกากบาท (X) หรือการขีดเขียนในช่อง ก, ข, ค, หรือง
-        3. ตรวจสอบให้แน่ใจว่ารอยกากบาทนั้น อยู่ในแถวเดียวกับตัวเลขข้อเป๊ะๆ ห้ามอ่านเลื่อนขึ้นหรือเลื่อนลงเด็ดขาด
-        4. หากช่องไหนรอยจางมาก แต่มีเจตนากากบาทชัดเจน ให้ถือว่าตอบข้อนั้น
-        5. หากข้อใดมีการเว้นว่าง ลบไม่สะอาด หรือกากบาทมากกว่า 1 ช่อง ให้ถือว่าข้อนั้นมีค่าเป็น null
+        พฤติกรรมของเด็กประถม และ วิธีการตรวจ (ต้องทำตามอย่างเคร่งครัด):
+        1. เด็กมักจะกากบาทไม่สมบูรณ์ กาไม่เต็มช่อง ขีดแค่เส้นเดียว
+        2. กฎการลบไม่สะอาด (สำคัญมาก): เด็กอาจจะมีการเปลี่ยนคำตอบโดยใช้ยางลบ แต่ "ลบไม่สะอาด" ทำให้มีรอยดำจางๆ หลงเหลืออยู่ และไปกากบาทในช่องใหม่
+        3. ในแต่ละข้อ ให้คุณเปรียบเทียบความเข้มของรอยขีดเขียนทั้ง 4 ช่อง (ก, ข, ค, ง)
+        4. หากพบรอยขีดเขียนมากกว่า 1 ช่องในข้อเดียวกัน ให้คุณเลือกตอบเฉพาะช่องที่มีรอย "ดำที่สุด เข้มที่สุด หรือตั้งใจเขียนชัดเจนที่สุด" เพียง 1 ช่องเท่านั้น โดยให้ถือว่ารอยที่จางกว่าคือรอยที่เด็กตั้งใจลบทิ้งไปแล้ว
+        5. ยึด "ตัวเลขข้อ" เป็นแกนหลักเสมอ ไล่ดูรอยในบรรทัดเดียวกัน ห้ามอ่านข้ามบรรทัดหรือสลับข้อเด็ดขาด
+        6. หากเว้นว่างทุกช่อง หรือมีรอยเข้มดำมืดเท่ากันเป๊ะๆ มากกว่า 1 ช่องจนแยกไม่ออก ค่อยกำหนดค่าเป็น null
         
         กฎการตอบกลับ:
-        - คืนค่าผลลัพธ์เป็นโครงสร้าง JSON เท่านั้น
-        - Key คือเลขข้อ (String) และ Value คือตัวเลือก (ก, ข, ค, ง)
+        - คืนค่าผลลัพธ์เป็นโครงสร้าง JSON เท่านั้น โดย Key คือเลขข้อ (String) และ Value คือตัวเลือก (ก, ข, ค, ง)
         - ห้ามพิมพ์ข้อความอธิบายใดๆ ทั้งสิ้น ตอบมาแค่ JSON
         `;
 
@@ -1137,85 +1059,22 @@
 				document.getElementById('scanStatusBadge').innerText = 'ตรวจสำเร็จ (โดย AI)';
 
 				currentScannedData = {
-					score: 0,
+					score,
 					total_score: totalQuestions,
 					answers: studentAnswers
 				};
 
-				renderInteractiveTable(); // เรียกใช้ฟังก์ชันสร้างตารางใหม่
-
 				document.getElementById('btnSaveResult').disabled = false;
+				
 				hideLoader();
-				showToast('ตรวจสำเร็จ คุณครูสามารถคลิกที่ปุ่มเพื่อแก้ไขคำตอบได้', 'success');
+				showToast('AI ตรวจกระดาษคำตอบสำเร็จ', 'success');
 
 			} catch (err) {
 				hideLoader();
 				console.error("Gemini Error:", err);
-				showToast('ไม่สามารถประมวลผลภาพได้ กรุณาลองอีกครั้ง', 'error');
+				showToast('ไม่สามารถประมวลผลภาพได้ กรุณาลองถ่ายภาพใหม่อีกครั้ง', 'error');
 			}
 		}
-		
-		// ------------------ ระบบตารางแก้ไขคำตอบ (Interactive Result Table) ------------------
-function renderInteractiveTable() {
-    let score = 0;
-    const listTbody = document.getElementById('scanAnswersList');
-    listTbody.innerHTML = '';
-    const options = ['ก', 'ข', 'ค', 'ง'];
-
-    currentExamKeys.forEach((key) => {
-        const qNum = key.question_number.toString();
-        const detectedOption = currentScannedData.answers[qNum];
-        const correctOption = key.correct_option;
-        const isCorrect = detectedOption === correctOption;
-        
-        if (isCorrect) score++;
-
-        // สร้างปุ่ม ก ข ค ง สำหรับแต่ละข้อ
-        let buttonsHtml = `<div class="flex space-x-1">`;
-        options.forEach(opt => {
-            const isSelected = detectedOption === opt;
-            let btnClass = 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'; // ค่าเริ่มต้น
-            
-            if (isSelected) {
-                // ถ้าเป็นข้อที่เลือก ให้แสดงสีเขียวถ้าถูก สีแดงถ้าผิด
-                btnClass = isCorrect 
-                    ? 'bg-emerald-500 text-white border-emerald-600 font-bold shadow-sm' 
-                    : 'bg-red-500 text-white border-red-600 font-bold shadow-sm';
-            }
-
-            buttonsHtml += `<button type="button" onclick="updateStudentAnswer('${qNum}', '${opt}')" class="px-2 py-1 text-xs border rounded-md transition ${btnClass}">${opt}</button>`;
-        });
-        
-        // เพิ่มปุ่ม "เว้นว่าง" (ลบคำตอบ)
-        const isNull = !detectedOption;
-        buttonsHtml += `<button type="button" onclick="updateStudentAnswer('${qNum}', null)" class="px-2 py-1 text-xs border rounded-md ml-2 transition ${isNull ? 'bg-slate-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-100'}">ว่าง</button></div>`;
-
-        listTbody.innerHTML += `
-            <tr class="border-b hover:bg-slate-50">
-                <td class="p-2 font-medium">ข้อ ${qNum}</td>
-                <td class="p-2">${buttonsHtml}</td>
-                <td class="p-2 text-slate-500 font-medium">${correctOption}</td>
-                <td class="p-2 font-bold ${isCorrect ? 'text-emerald-500' : 'text-red-500'}">${isCorrect ? '✔' : '✘'}</td>
-            </tr>
-        `;
-    });
-
-    // อัปเดตคะแนนรวม
-    currentScannedData.score = score;
-    document.getElementById('scanScoreDisplay').innerText = `${score} / ${currentScannedData.total_score}`;
-    
-    const badge = document.getElementById('scanStatusBadge');
-    badge.className = 'px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold';
-    badge.innerText = 'รอการบันทึก';
-}
-
-// ฟังก์ชันคลิกแก้ไขคำตอบรายข้อ
-function updateStudentAnswer(qNum, newAnswer) {
-    // อัปเดตค่าใน State
-    currentScannedData.answers[qNum] = newAnswer;
-    // สั่งวาดตารางใหม่เพื่อคำนวณคะแนนและเปลี่ยนสีปุ่ม
-    renderInteractiveTable(); 
-}
 
         function stopCamera() {
 			// 1. ปิดการทำงานของกล้อง
@@ -1304,117 +1163,41 @@ function updateStudentAnswer(qNum, newAnswer) {
             document.getElementById('btnSaveResult').disabled = false;
         }
 
-        // ฟังก์ชันบันทึกผลการสแกน (รองรับโหมดสแกนต่อเนื่อง)
-		async function saveScanResult(isContinuous = false) {
-		    // 1. ตรวจสอบความพร้อมของข้อมูลก่อนบันทึก
-		    if (!currentScannedData) {
-		        showToast('ไม่มีข้อมูลการสแกน กรุณาสแกนกระดาษคำตอบก่อน', 'warning');
-		        return;
-		    }
-		
-		    // สมมติว่า ID ของช่องกรอกรหัสและชื่อคือ scanStudentId และ scanStudentName (ปรับแก้ได้ตามโค้ดจริงของคุณครูครับ)
-		    const studentIdInput = document.getElementById('scanStudentId');
-		    const studentNameInput = document.getElementById('scanStudentName');
-		    const studentId = studentIdInput ? studentIdInput.value.trim() : '';
-		    const studentName = studentNameInput ? studentNameInput.value.trim() : '';
-		
-		    if (!studentId) {
-		        showToast('กรุณาระบุรหัสนักเรียนก่อนบันทึก', 'warning');
-		        if (studentIdInput) studentIdInput.focus();
-		        return;
-		    }
-		
-		    if (!currentExamId) {
-		        showToast('ไม่พบข้อมูลชุดข้อสอบ กรุณาเลือกวิชา/ชุดข้อสอบก่อน', 'error');
-		        return;
-		    }
-		
-		    // 2. จัดการหน้าตาปุ่มให้อยู่ในสถานะ "กำลังโหลด"
-		    const btnSave = document.getElementById('btnSaveResult');
-		    const btnSaveNext = document.getElementById('btnSaveAndNext');
-		    const originalSaveText = btnSave.innerHTML;
-		    const originalSaveNextText = btnSaveNext.innerHTML;
-		    
-		    btnSave.disabled = true;
-		    btnSaveNext.disabled = true;
-		    
-		    if (isContinuous) {
-		        btnSaveNext.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>กำลังบันทึก...</span>';
-		    } else {
-		        btnSave.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>กำลังบันทึก...</span>';
-		    }
-		    lucide.createIcons();
-		
-		    try {
-		        // 3. ส่งข้อมูลบันทึกลงฐานข้อมูล Supabase
-		        // หมายเหตุ: เปลี่ยนชื่อตาราง 'exam_results' ให้ตรงกับตารางใน Supabase ของคุณครูนะครับ
-		        const { data, error } = await dbClient
-		            .from('exam_results')
-		            .insert([
-		                {
-		                    exam_id: currentExamId,       // รหัสวิชา/ชุดข้อสอบ
-		                    student_id: studentId,        // รหัสนักเรียน
-		                    student_name: studentName,    // ชื่อนักเรียน
-		                    score: currentScannedData.score,                  // คะแนนที่ได้
-		                    total_score: currentScannedData.total_score,      // คะแนนเต็ม
-		                    answers_data: currentScannedData.answers,         // JSON บันทึกว่าข้อไหนตอบอะไร (เอาไว้วิเคราะห์ทีหลัง)
-		                    graded_by: currentUser.id     // รหัสคุณครูที่ตรวจ
-		                }
-		            ]);
-		
-		        if (error) throw error;
-		
-		        showToast(`บันทึกคะแนนของ ${studentId} เรียบร้อยแล้ว`, 'success');
-		
-		        // 4. จัดการหน้าจอหลังบันทึกสำเร็จ
-		        if (isContinuous) {
-		            // โหมดสแกนต่อเนื่อง (⚡ บันทึก & สแกนแผ่นต่อไป)
-		            
-		            // เคลียร์ข้อมูลเก่า
-		            currentScannedData = null;
-		            if (studentIdInput) studentIdInput.value = '';
-		            if (studentNameInput) studentNameInput.value = '';
-		            document.getElementById('scanAnswersList').innerHTML = '';
-		            document.getElementById('scanScoreDisplay').innerText = '- / -';
-		            document.getElementById('scanStatusBadge').innerText = 'รอสแกน';
-		            
-		            // ปิดตารางผลลัพธ์และปุ่มเครื่องมือ
-		            document.getElementById('processControls').classList.add('hidden');
-		            document.getElementById('captureCanvas').classList.add('hidden');
-		            
-		            // คืนค่าปุ่มให้กดได้อีกรอบ
-		            btnSave.disabled = false;
-		            btnSaveNext.disabled = false;
-		            btnSave.innerHTML = originalSaveText;
-		            btnSaveNext.innerHTML = originalSaveNextText;
-		
-		            // เรียกกล้องขึ้นมาใหม่ทันที
-		            startCamera(); 
-		            
-		        } else {
-		            // โหมดบันทึกปกติ (บันทึกเฉยๆ)
-		            
-		            // ปิดปุ่ม ป้องกันการกดเบิ้ล
-		            document.getElementById('scanStatusBadge').className = 'px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold';
-		            document.getElementById('scanStatusBadge').innerText = 'บันทึกแล้ว';
-		            btnSave.innerHTML = originalSaveText;
-		            btnSaveNext.innerHTML = originalSaveNextText;
-		            // คงสถานะ disabled ไว้จนกว่าจะเปลี่ยนรูปใหม่
-		        }
-		
-		    } catch (error) {
-		        console.error('Error saving result:', error);
-		        showToast('เกิดข้อผิดพลาดในการบันทึก: ' + error.message, 'error');
-		        
-		        // ถ้า error คืนค่าปุ่มให้กลับมากดใหม่ได้
-		        btnSave.disabled = false;
-		        btnSaveNext.disabled = false;
-		        btnSave.innerHTML = originalSaveText;
-		        btnSaveNext.innerHTML = originalSaveNextText;
-		    } finally {
-		        lucide.createIcons(); // รีเฟรชไอคอน
-		    }
-		}
+        async function saveScanResult() {
+            const examId = document.getElementById('scanExamSelect').value;
+            const studentId = document.getElementById('scanStudentId').value.trim();
+            const studentName = document.getElementById('scanStudentName').value.trim();
+
+            if (!studentId || !studentName) {
+                showToast('กรุณากรอกรหัสและชื่อนักเรียน', 'warning');
+                return;
+            }
+
+            showLoader('กำลังบันทึกข้อมูลคะแนน...');
+            try {
+                const { error } = await dbClient.from('exam_results').insert([{
+                    exam_id: examId,
+                    user_id: currentUser.id,
+                    student_id: studentId,
+                    student_name: studentName,
+                    score: currentScannedData.score,
+                    total_score: currentScannedData.total_score,
+                    student_answers: currentScannedData.answers
+                }]);
+
+                hideLoader();
+                if (error) throw error;
+
+                showToast('บันทึกผลการตรวจข้อสอบเรียบร้อยแล้ว', 'success');
+                document.getElementById('btnSaveResult').disabled = true;
+                document.getElementById('scanStudentId').value = '';
+                document.getElementById('scanStudentName').value = '';
+
+            } catch (err) {
+                hideLoader();
+                showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+            }
+        }
 
         // ------------------ EXAM MANAGEMENT ------------------
         async function loadExamsList() {
@@ -1789,336 +1572,6 @@ async function loadSystemSettings() {
     } catch (err) {
         console.error('ไม่สามารถโหลดการตั้งค่าระบบได้', err);
     }
-}
-
-// ------------------ เครื่องมือแต้มจุด (Drawing Tool) ------------------
-
-function toggleDrawingMode() {
-    isDrawingMode = !isDrawingMode;
-    const canvas = document.getElementById('captureCanvas');
-    const btnText = document.getElementById('penStatusText');
-    const btn = document.getElementById('btnTogglePen');
-
-    if (isDrawingMode) {
-        btnText.innerText = 'ปิดปากกา';
-        btn.classList.replace('bg-white', 'bg-indigo-600');
-        btn.classList.replace('text-indigo-600', 'text-white');
-        canvas.style.cursor = 'crosshair';
-        showToast('ใช้นิ้วแต้มจุดสีดำทับรอยที่จางได้เลย', 'info');
-    } else {
-        btnText.innerText = 'เปิดปากกา';
-        btn.classList.replace('bg-indigo-600', 'bg-white');
-        btn.classList.replace('text-white', 'text-indigo-600');
-        canvas.style.cursor = 'default';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('captureCanvas');
-    const ctx = canvas.getContext('2d');
-
-    const startDraw = (e) => {
-        if (currentDrawTool === 'none') return;
-        e.preventDefault();
-        const coords = getCanvasCoordinates(e, canvas);
-        if (!coords) return;
-        
-        isDrawing = true;
-        lastX = coords.x;
-        lastY = coords.y;
-        draw(e); 
-    };
-
-    const stopDraw = () => {
-        isDrawing = false;
-    };
-
-    const draw = (e) => {
-        if (currentDrawTool === 'none' || !isDrawing) return;
-        e.preventDefault();
-        const coords = getCanvasCoordinates(e, canvas);
-        if (!coords) return;
-
-        const penSize = parseInt(document.getElementById('penSize').value);
-
-        ctx.lineWidth = penSize;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        if (currentDrawTool === 'pen') {
-            // โหมดปากกา: วาดเส้นสีดำ
-            ctx.strokeStyle = '#000000';
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(coords.x, coords.y);
-            ctx.stroke();
-        } else if (currentDrawTool === 'eraser') {
-            // โหมดยางลบ: ดึงภาพจากหน้ากระดาษต้นฉบับมาแปะทับรอยดำ
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(coords.x, coords.y);
-            ctx.clip(); // ตีกรอบบริเวณที่จะลบตามขนาดหัวยางลบ
-            ctx.drawImage(offscreenCanvas, 0, 0); // คืนสภาพรูป
-            ctx.restore();
-        }
-
-        lastX = coords.x;
-        lastY = coords.y;
-    };
-
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseout', stopDraw);
-    canvas.addEventListener('touchstart', startDraw, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDraw);
-});
-
-// ------------------ เครื่องมือแต้มจุด และ ยางลบ (Drawing Tool V2) ------------------
-let currentDrawTool = 'none'; 
-let isDrawing = false;
-let isDrawingMode = false;
-let lastX = 0;
-let lastY = 0;
-
-function setDrawTool(tool) {
-    const canvas = document.getElementById('captureCanvas');
-    const btnPen = document.getElementById('btnToolPen');
-    const btnEraser = document.getElementById('btnToolEraser');
-    
-    // รีเซ็ตปุ่ม
-    btnPen.className = 'p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm';
-    btnEraser.className = 'p-2 bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 rounded-lg transition shadow-sm';
-    
-    // ถ้ากดปุ่มเดิมซ้ำ = ปิดการใช้งาน
-    if (currentDrawTool === tool) {
-        currentDrawTool = 'none';
-        canvas.style.cursor = 'default';
-        return;
-    }
-    
-    currentDrawTool = tool;
-    if (tool === 'pen') {
-        btnPen.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-sm';
-        canvas.style.cursor = 'crosshair';
-    } else if (tool === 'eraser') {
-        btnEraser.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-sm';
-        canvas.style.cursor = 'cell';
-    }
-}
-
-function clearDrawing() {
-    const canvas = document.getElementById('captureCanvas');
-    const ctx = canvas.getContext('2d');
-    // วาดภาพต้นฉบับกลับคืนมาทั้งหมด
-    ctx.drawImage(offscreenCanvas, 0, 0);
-    showToast('คืนค่ารูปภาพต้นฉบับแล้ว', 'success');
-}
-
-// ฟังก์ชันคณิตศาสตร์: คำนวณพิกัดให้ตรงเป๊ะกับหน้าจอ
-function getCanvasCoordinates(e, canvas) {
-    const rect = canvas.getBoundingClientRect();
-    const canvasAspect = canvas.width / canvas.height;
-    const rectAspect = rect.width / rect.height;
-
-    let renderedW, renderedH, offsetX = 0, offsetY = 0;
-
-    if (canvasAspect > rectAspect) {
-        renderedW = rect.width;
-        renderedH = rect.width / canvasAspect;
-        offsetY = (rect.height - renderedH) / 2;
-    } else {
-        renderedH = rect.height;
-        renderedW = rect.height * canvasAspect;
-        offsetX = (rect.width - renderedW) / 2;
-    }
-
-    const scaleX = canvas.width / renderedW;
-    const scaleY = canvas.height / renderedH;
-
-    let clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    let clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-    // เช็คว่ากดออกนอกขอบรูปภาพหรือไม่
-    if (clientX < rect.left + offsetX || clientX > rect.right - offsetX ||
-        clientY < rect.top + offsetY || clientY > rect.bottom - offsetY) {
-        return null;
-    }
-
-    const x = (clientX - rect.left - offsetX) * scaleX;
-    const y = (clientY - rect.top - offsetY) * scaleY;
-
-    return { x, y };
-}
-
-// ------------------ ระบบ Batch Processing (ประมวลผลแบบกลุ่ม) ------------------
-let batchResultsData = [];
-
-async function handleBatchUpload(e) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    if (!currentExamId) {
-        showToast('กรุณาเลือกวิชา/ชุดข้อสอบก่อนอัปโหลด', 'warning');
-        return;
-    }
-
-    document.getElementById('batchResultContainer').classList.remove('hidden');
-    const tbody = document.getElementById('batchResultTableBody');
-    tbody.innerHTML = '';
-    batchResultsData = [];
-    document.getElementById('btnSaveBatch').disabled = true;
-
-    // 1. สร้างแถวตารางรอไว้สำหรับทุกรูปที่อัปโหลด
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        batchResultsData.push({ id: i, status: 'pending', score: 0, total: 0, answers: null });
-        
-        const tr = document.createElement('tr');
-        tr.className = 'border-b hover:bg-slate-50';
-        tr.innerHTML = `
-            <td class="px-3 py-2 text-center"><img id="batch-img-${i}" class="w-10 h-10 object-cover rounded mx-auto border border-slate-300"></td>
-            <td class="px-3 py-2"><input type="text" id="batch-id-${i}" class="w-full p-2 border rounded-lg text-xs" placeholder="รหัส..."></td>
-            <td class="px-3 py-2"><input type="text" id="batch-name-${i}" class="w-full p-2 border rounded-lg text-xs" placeholder="ชื่อ-สกุล (พิมพ์รอได้เลย)..."></td>
-            <td class="px-3 py-2 font-bold text-center text-indigo-600 text-lg" id="batch-score-${i}">-</td>
-            <td class="px-3 py-2 text-center" id="batch-status-${i}"><span class="px-2 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-semibold shadow-sm">รอคิว</span></td>
-        `;
-        tbody.appendChild(tr);
-
-        // โหลดรูปภาพขนาดเล็กมาโชว์ในตาราง
-        const reader = new FileReader();
-        reader.onload = (event) => { document.getElementById(`batch-img-${i}`).src = event.target.result; };
-        reader.readAsDataURL(file);
-    }
-    lucide.createIcons();
-    
-    // 2. เริ่มลูปส่งให้ AI ตรวจทีละภาพ (เพื่อไม่ให้เบียดกันจนเกินไปแม้ใช้ Pro)
-    for (let i = 0; i < files.length; i++) {
-        document.getElementById('batchProgressText').innerText = `(${i + 1} / ${files.length})`;
-        await processSingleBatchFile(i, files[i]);
-    }
-    
-    document.getElementById('batchProgressText').innerText = `(สแกนเสร็จสิ้น ${files.length} แผ่น)`;
-    document.getElementById('btnSaveBatch').disabled = false; // เปิดปุ่มบันทึก
-    showToast(`AI ตรวจข้อสอบเสร็จสิ้น ${files.length} แผ่น!`, 'success');
-}
-
-// ฟังก์ชันส่งตรวจทีละแผ่น (ใช้ Prompt ที่ฉลาดที่สุดของเรา)
-async function processSingleBatchFile(index, file) {
-    document.getElementById(`batch-status-${index}`).innerHTML = `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold animate-pulse shadow-sm">กำลังตรวจ...</span>`;
-    
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const base64Image = event.target.result.split(',')[1];
-            try {
-                const totalQuestions = currentExamKeys.length;
-                let layoutDescription = (totalQuestions === 20) ? "ตารางแบ่งเป็น 2 ฝั่ง ซ้ายและขวา ฝั่งซ้ายคือข้อ 1-10 ฝั่งขวาคือข้อ 11-20" : "ตารางแบ่งเป็น 2 ฝั่ง ซ้ายและขวา ฝั่งซ้ายคือข้อ 1-5 ฝั่งขวาคือข้อ 6-10";
-
-                const promptText = `
-                AI ตรวจกระดาษคำตอบ ปรนัย แม่นยำ 100% (จำนวน ${totalQuestions} ข้อ)
-                โครงสร้าง: ${layoutDescription} | ตัวเลือก: ก, ข, ค, ง
-                1. หากพบจุดสีดำทึบกลมๆ (ที่ครูแต้มไว้) ให้ถือว่าช่องนั้นคือคำตอบทันที
-                2. หากไม่มี ให้หารอยกากบาท หรือรอยขีดเขียนจางๆ หากมีหลายรอย เลือกที่เข้มที่สุด
-                3. คืนค่า JSON เท่านั้น Key คือเลขข้อ Value คือตัวเลือก ห้ามมีข้อความอื่น
-                `;
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }],
-                        generationConfig: { temperature: 0.0, response_mime_type: "application/json" }
-                    })
-                });
-                
-                const result = await response.json();
-                let rawText = result.candidates[0].content.parts[0].text;
-                const studentAnswers = JSON.parse(rawText);
-                
-                let score = 0;
-                currentExamKeys.forEach((key) => {
-                    if (studentAnswers[key.question_number.toString()] === key.correct_option) score++;
-                });
-
-                batchResultsData[index].status = 'success';
-                batchResultsData[index].score = score;
-                batchResultsData[index].total = totalQuestions;
-                batchResultsData[index].answers = studentAnswers;
-                
-                document.getElementById(`batch-score-${index}`).innerText = `${score} / ${totalQuestions}`;
-                document.getElementById(`batch-status-${index}`).innerHTML = `<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold shadow-sm">✔ เสร็จสิ้น</span>`;
-                
-            } catch (err) {
-                console.error(err);
-                batchResultsData[index].status = 'error';
-                document.getElementById(`batch-status-${index}`).innerHTML = `<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold shadow-sm">✘ ผิดพลาด</span>`;
-            }
-            resolve();
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-// ฟังก์ชันบันทึกข้อมูลทั้งตารางลง Supabase
-async function saveAllBatchResults() {
-    let successCount = 0;
-    const btnSave = document.getElementById('btnSaveBatch');
-    btnSave.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>กำลังบันทึก...</span>`;
-    btnSave.disabled = true;
-
-    // เตรียมข้อมูลแบบ Array เพื่อใช้คำสั่ง Insert รวดเดียว (Bulk Insert)
-    const recordsToInsert = [];
-
-    for (let i = 0; i < batchResultsData.length; i++) {
-        if (batchResultsData[i].status !== 'success') continue;
-
-        const studentId = document.getElementById(`batch-id-${i}`).value.trim();
-        const studentName = document.getElementById(`batch-name-${i}`).value.trim();
-
-        // ตรวจสอบว่ากรอกรหัสครบไหม
-        if (!studentId) {
-            alert(`กรุณากรอกรหัสนักเรียนในแถวที่ ${i+1} ให้ครบถ้วนก่อนบันทึก`);
-            btnSave.innerHTML = `<i data-lucide="saveAll" class="w-5 h-5"></i> <span>บันทึกข้อมูลทั้งห้อง</span>`;
-            btnSave.disabled = false;
-            lucide.createIcons();
-            document.getElementById(`batch-id-${i}`).focus();
-            return; 
-        }
-
-        recordsToInsert.push({
-            exam_id: currentExamId,
-            student_id: studentId,
-            student_name: studentName,
-            score: batchResultsData[i].score,
-            total_score: batchResultsData[i].total,
-            answers_data: batchResultsData[i].answers,
-            graded_by: currentUser.id
-        });
-    }
-
-    try {
-        // บันทึกลง Supabase แบบรวดเดียว
-        const { data, error } = await dbClient.from('exam_results').insert(recordsToInsert);
-        if (error) throw error;
-        
-        showToast(`บันทึกคะแนนนักเรียนสำเร็จ ${recordsToInsert.length} คน`, 'success');
-        
-        // ล้างหน้าจอหลังเซฟเสร็จ
-        setTimeout(() => {
-            document.getElementById('batchResultContainer').classList.add('hidden');
-            document.getElementById('batchFileInput').value = '';
-        }, 1500);
-
-    } catch (err) {
-        console.error(err);
-        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลแบบกลุ่ม', 'error');
-        btnSave.innerHTML = `<i data-lucide="saveAll" class="w-5 h-5"></i> <span>บันทึกข้อมูลทั้งห้อง</span>`;
-        btnSave.disabled = false;
-    }
-    lucide.createIcons();
 }
     </script>
 </body>
